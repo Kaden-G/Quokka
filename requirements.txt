@@ -1,0 +1,22 @@
+# GSE SOP Quick-Finder Dependencies
+# All dependencies run 100% locally - no cloud services
+
+# PDF Processing
+pypdf>=3.17.0
+pdfminer.six>=20221105
+
+# Word Document Processing
+python-docx>=1.1.0
+
+# Embeddings & Vector Search
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
+
+# Web Framework
+Flask>=3.0.0
+
+# Data Processing
+numpy>=1.24.0
+
+# Optional: Enhanced PDF viewing
+PyMuPDF>=1.23.0

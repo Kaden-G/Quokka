@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSE SOP Quick-Finder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #searchInput:focus {
+            border-color: #2a5298;
+        }
+
+        #searchButton {
+            padding: 15px 40px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #searchButton:hover {
+            background: #1e3c72;
+        }
+
+        #searchButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filters label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filters select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats span {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .results {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            min-height: 300px;
+        }
+
+        .results h2 {
+            color: #2a5298;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2a5298;
+        }
+
+        .result-item {
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            font-weight: bold;
+            color: #1e3c72;
+            font-size: 1.1em;
+        }
+
+        .result-badge {
+            background: #2a5298;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .result-meta {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .result-section {
+            background: #fff;
+            padding: 8px 12px;
+            border-left: 3px solid #2a5298;
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #555;
+        }
+
+        .result-text {
+            line-height: 1.6;
+            color: #333;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-results svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2a5298;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #c62828;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 GSE SOP Quick-Finder</h1>
+            <p>Secure, Offline SOP Retrieval System</p>
+        </div>
+
+        <div class="stats" id="statsBar">
+            Loading statistics...
+        </div>
+
+        <div class="search-box">
+            <form class="search-form" id="searchForm">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Enter your question (e.g., 'How do I initialize the cooling system?')"
+                    autocomplete="off"
+                    required
+                >
+                <button type="submit" id="searchButton">Search</button>
+            </form>
+
+            <div class="filters">
+                <label for="documentFilter">Filter by document:</label>
+                <select id="documentFilter">
+                    <option value="">All Documents</option>
+                </select>
+
+                <label for="resultCount">Results:</label>
+                <select id="resultCount">
+                    <option value="5" selected>5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="results">
+            <h2>Search Results</h2>
+            <div id="resultsContainer">
+                <div class="no-results">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <p>Enter a query to search your SOP documents</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load statistics on page load
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                document.getElementById('statsBar').innerHTML = `
+                    <span>${data.total_documents}</span> Documents Indexed |
+                    <span>${data.total_chunks}</span> Searchable Chunks |
+                    <span>100%</span> Offline
+                `;
+
+                // Populate document filter
+                const select = document.getElementById('documentFilter');
+                data.documents.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc;
+                    option.textContent = doc;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                document.getElementById('statsBar').innerHTML =
+                    '<span style="color: #ffcdd2;">Error loading statistics</span>';
+            }
+        }
+
+        // Search function
+        async function performSearch(event) {
+            event.preventDefault();
+
+            const query = document.getElementById('searchInput').value.trim();
+            const topK = parseInt(document.getElementById('resultCount').value);
+            const docFilter = document.getElementById('documentFilter').value;
+            const resultsContainer = document.getElementById('resultsContainer');
+            const searchButton = document.getElementById('searchButton');
+
+            if (!query) return;
+
+            // Show loading
+            searchButton.disabled = true;
+            resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: topK,
+                        document: docFilter || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                if (data.results.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="no-results">
+                            <p>No results found for "${query}"</p>
+                            <p style="font-size: 0.9em; margin-top: 10px;">Try rephrasing your question or using different keywords</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Display results
+                let html = '';
+                data.results.forEach(result => {
+                    const similarity = (result.similarity * 100).toFixed(1);
+                    html += `
+                        <div class="result-item">
+                            <div class="result-header">
+                                <div class="result-title">${result.doc_name}</div>
+                                <div class="result-badge">${similarity}% Match</div>
+                            </div>
+                            <div class="result-meta">
+                                📄 Page ${result.page} | 🔖 Result #${result.rank}
+                            </div>
+                            <div class="result-section">
+                                ${result.section}
+                            </div>
+                            <div class="result-text">
+                                ${highlightText(result.text, query)}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultsContainer.innerHTML = html;
+
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+            } finally {
+                searchButton.disabled = false;
+            }
+        }
+
+        // Simple text highlighting
+        function highlightText(text, query) {
+            // Simple word-based highlighting
+            const words = query.toLowerCase().split(' ').filter(w => w.length > 3);
+            let highlighted = text;
+
+            words.forEach(word => {
+                const regex = new RegExp(`(${word})`, 'gi');
+                highlighted = highlighted.replace(regex, '<mark style="background: #fff59d;">$1</mark>');
+            });
+
+            return highlighted;
+        }
+
+        // Event listeners
+        document.getElementById('searchForm').addEventListener('submit', performSearch);
+
+        // Load stats on page load
+        loadStats();
+    </script>
+</body>
+</html>
