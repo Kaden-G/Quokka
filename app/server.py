@@ -50,11 +50,18 @@ def api_search():
     query = data.get('query', '').strip()
     top_k = data.get('top_k', 5)
     doc_filter = data.get('document', None)
+    generate_answer = data.get('generate_answer', False)
 
     if not query:
         return jsonify({'error': 'Query cannot be empty'}), 400
 
     try:
+        # Use RAG pipeline if answer generation is requested
+        if generate_answer:
+            response = searcher.search_and_answer(query, top_k=top_k)
+            return jsonify(response)
+
+        # Otherwise, just return search results
         if doc_filter:
             results = searcher.search_by_document(query, doc_filter, top_k=top_k)
         else:

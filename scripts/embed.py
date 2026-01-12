@@ -20,11 +20,12 @@ class EmbeddingIndexer:
         self,
         processed_dir: str,
         index_dir: str,
-        model_name: str = 'sentence-transformers/all-MiniLM-L6-v2'
+        model_name: str = 'BAAI/bge-small-en-v1.5'
     ):
         self.processed_dir = Path(processed_dir)
         self.index_dir = Path(index_dir)
         self.index_dir.mkdir(parents=True, exist_ok=True)
+        self.model_name = model_name
 
         print(f"Loading embedding model: {model_name}")
         self.model = SentenceTransformer(model_name)
@@ -69,14 +70,18 @@ class EmbeddingIndexer:
 
         dimension = embeddings.shape[1]
 
-        # Use simple flat index (best for < 1M vectors)
-        # For larger datasets, consider IndexIVFFlat
-        index = faiss.IndexFlatL2(dimension)
+        # Use IndexFlatIP for cosine similarity (better for semantic search)
+        # Normalize embeddings for cosine similarity
+        index = faiss.IndexFlatIP(dimension)
+
+        # Normalize embeddings before adding (required for cosine similarity)
+        embeddings_normalized = embeddings.astype('float32')
+        faiss.normalize_L2(embeddings_normalized)
 
         # Add vectors to index
-        index.add(embeddings.astype('float32'))
+        index.add(embeddings_normalized)
 
-        print(f"Index built with {index.ntotal} vectors")
+        print(f"Index built with {index.ntotal} vectors (cosine similarity)")
         return index
 
     def save_index(
@@ -117,8 +122,9 @@ class EmbeddingIndexer:
         config = {
             'num_chunks': len(chunks),
             'embedding_dim': embeddings.shape[1],
-            'model_name': 'sentence-transformers/all-MiniLM-L6-v2',
-            'index_type': 'IndexFlatL2'
+            'model_name': self.model_name,
+            'index_type': 'IndexFlatIP',
+            'similarity_metric': 'cosine'
         }
 
         config_file = self.index_dir / 'config.json'

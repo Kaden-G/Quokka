@@ -18,5 +18,8 @@ Flask>=3.0.0
 # Data Processing
 numpy>=1.24.0
 
+# LLM for Answer Generation
+ollama>=0.1.0
+
 # Optional: Enhanced PDF viewing
 PyMuPDF>=1.23.0
