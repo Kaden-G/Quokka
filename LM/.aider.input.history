@@ -1,0 +1,38 @@
+
+# 2026-01-26 08:24:40.047209
++n
+
+# 2026-01-26 08:24:43.358090
++python -m aider --model claude-3.5-sonnet --no-show-model-warnings --no-auto-update
++
+
+# 2026-01-26 08:24:47.734570
++n
+
+# 2026-01-26 08:25:36.757485
++lets back up the quokka_eval folder in a git repo
+
+# 2026-01-26 08:26:59.644642
++python -m aider ^
++  --model anthropic/claude-4.5-sonnet ^
++  --read-only ^
++  --no-show-model-warnings ^
++  --no-auto-update
++
+
+# 2026-01-26 08:46:35.612987
++n
+
+# 2026-01-26 08:46:50.342261
++lets back up this folder to a git repo
+
+# 2026-01-26 08:50:22.363111
++python -m aider --sonnet --anthropic-api-key $env:ANTHROPIC_API_KEY --no-check-update
++
+
+# 2026-01-26 08:50:51.375307
++python -m aider --sonnet --anthropic-api-key $env:ANTHROPIC_API_KEY --no-check-update --no-verify-ssl
++
+
+# 2026-01-26 08:53:54.317600
++exit

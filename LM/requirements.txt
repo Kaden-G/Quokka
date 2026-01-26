@@ -1,0 +1,6 @@
+# Minimal dependencies for the eval harness.
+# The harness will run without these, but you’ll get richer ingestion support.
+
+python-docx>=0.8.11
+# Optional (PDF text extraction):
+# pymupdf>=1.23.0

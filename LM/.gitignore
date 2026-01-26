@@ -1,0 +1,12 @@
+# Runtime artifacts
+runs/
+__pycache__/
+*.pyc
+
+# Virtual envs
+.venv/
+venv/
+
+# OS cruft
+Thumbs.db
+Desktop.ini

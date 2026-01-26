@@ -1,0 +1,24 @@
+[paths]
+# Relative to repo root
+data_dir = "data"
+questions_file = "eval/questions.jsonl"
+runs_dir = "runs"
+
+[pipeline]
+# Phase 0 harness supports only: mock
+name = "mock"
+
+# Retrieval depth (k)
+retrieval_k = 20
+
+# Chunk size for deterministic local chunking (chars, not tokens)
+max_chunk_chars = 2500
+
+# Max context size passed to the LLM stage (chars)
+context_max_chars = 12000
+
+# Minimum retrieval score to include a chunk
+min_score = 0.0
+
+# NEW: chunking experiment control
+chunking_mode = "small"
