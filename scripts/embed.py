@@ -19,7 +19,7 @@ class EmbeddingIndexer:
         self,
         processed_dir: str,
         index_dir: str,
-        model_name: str = 'BAAI/bge-small-en-v1.5'
+        model_name: str = 'BAAI/bge-base-en-v1.5'
     ):
         self.processed_dir = Path(processed_dir)
         self.index_dir = Path(index_dir)

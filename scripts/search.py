@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer, CrossEncoder
 import faiss
+from rank_bm25 import BM25Okapi
 
 try:
     import ollama
@@ -25,6 +26,12 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
+
+try:
+    import anthropic as _anthropic_mod
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
 
 
 class SOPSearcher:
@@ -66,15 +73,19 @@ class SOPSearcher:
         else:
             raise FileNotFoundError('No metadata file found in index directory')
 
+        # Build BM25 index for hybrid keyword search
+        tokenized_corpus = [chunk['text'].lower().split() for chunk in self.metadata]
+        self.bm25 = BM25Okapi(tokenized_corpus)
+
         # Load embedding model
-        model_name = self.config.get('model_name', 'BAAI/bge-small-en-v1.5')
+        model_name = self.config.get('model_name', 'BAAI/bge-base-en-v1.5')
         self.model = SentenceTransformer(model_name)
 
         # Load cross-encoder for re-ranking (optional but recommended)
         self.use_reranker = use_reranker
         if self.use_reranker:
             print("Loading cross-encoder for re-ranking...")
-            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
         else:
             self.reranker = None
 
@@ -85,8 +96,18 @@ class SOPSearcher:
         self._api_base = api_base or os.environ.get('QUOKKA_API_BASE', 'https://api.openai.com/v1')
         self._llm_model = llm_model or os.environ.get('QUOKKA_LLM_MODEL', '')
         self._openai_client = None
+        self._anthropic_client = None
 
-        if self.llm_provider == 'openai' and self._api_key:
+        if self.llm_provider == 'anthropic' and self._api_key:
+            if not ANTHROPIC_AVAILABLE:
+                print("Warning: anthropic provider requested but 'anthropic' package not installed.")
+                print("  Install with: pip install anthropic")
+                self.llm_provider = ''
+            else:
+                self._anthropic_client = _anthropic_mod.Anthropic(api_key=self._api_key)
+                self._llm_model = self._llm_model or 'claude-sonnet-4-20250514'
+                print(f"Anthropic LLM enabled (model: {self._llm_model})")
+        elif self.llm_provider == 'openai' and self._api_key:
             if not OPENAI_AVAILABLE:
                 print("Warning: openai provider requested but 'openai' package not installed.")
                 print("  Install with: pip install openai")
@@ -110,7 +131,7 @@ class SOPSearcher:
                 print(f"OpenAI-compatible LLM auto-detected (model: {model_display})")
 
         # Ollama fallback
-        self.use_ollama = use_ollama and OLLAMA_AVAILABLE and self.llm_provider != 'openai'
+        self.use_ollama = use_ollama and OLLAMA_AVAILABLE and self.llm_provider not in ('openai', 'anthropic', 'lm_internal')
         self.ollama_model = ollama_model
         if self.use_ollama:
             self.llm_provider = self.llm_provider or 'ollama'
@@ -125,6 +146,97 @@ class SOPSearcher:
         self._cache_lock = threading.Lock()
 
         print(f"Loaded index with {len(self.metadata)} chunks")
+
+    def configure_llm(self, provider: str, api_key: str = '', api_base: str = '', model: str = '', ollama_model: str = ''):
+        """Reconfigure the LLM provider at runtime."""
+        provider = (provider or '').lower().strip()
+
+        # Reset clients
+        self._openai_client = None
+        self._anthropic_client = None
+        self.use_ollama = False
+
+        if provider == 'anthropic' and api_key:
+            if not ANTHROPIC_AVAILABLE:
+                print("Warning: anthropic provider requested but 'anthropic' package not installed.")
+                return
+            self.llm_provider = 'anthropic'
+            self._api_key = api_key
+            self._llm_model = model or 'claude-sonnet-4-20250514'
+            self._anthropic_client = _anthropic_mod.Anthropic(api_key=self._api_key)
+            print(f"LLM reconfigured: anthropic (model: {self._llm_model})")
+        elif provider in ('openai', 'lm_internal') and api_key:
+            if not OPENAI_AVAILABLE:
+                print("Warning: openai provider requested but 'openai' package not installed.")
+                return
+            self.llm_provider = provider  # Keep 'lm_internal' or 'openai' for display
+            self._api_key = api_key
+            self._api_base = api_base or 'https://api.openai.com/v1'
+            self._llm_model = model or ''
+            self._openai_client = OpenAI(
+                api_key=self._api_key,
+                base_url=self._api_base
+            )
+            print(f"LLM reconfigured: {provider} (base: {self._api_base}, model: {self._llm_model or 'default'})")
+        elif provider == 'ollama':
+            self.llm_provider = 'ollama'
+            self._api_key = ''
+            self.use_ollama = OLLAMA_AVAILABLE
+            if ollama_model:
+                self.ollama_model = ollama_model
+            print(f"LLM reconfigured: ollama (model: {self.ollama_model})")
+        else:
+            self.llm_provider = ''
+            self._api_key = ''
+            print("LLM disabled")
+
+    def get_llm_status(self) -> dict:
+        """Return current LLM configuration status."""
+        if self.llm_provider == 'anthropic':
+            return {'provider': 'anthropic', 'model': self._llm_model, 'api_base': '', 'has_key': True}
+        elif self.llm_provider in ('openai', 'lm_internal'):
+            return {'provider': self.llm_provider, 'model': self._llm_model, 'api_base': self._api_base, 'has_key': bool(self._api_key)}
+        elif self.llm_provider == 'ollama':
+            return {'provider': 'ollama', 'model': self.ollama_model, 'api_base': '', 'has_key': False}
+        return {'provider': 'none', 'model': '', 'api_base': '', 'has_key': False}
+
+    def _hyde_expand(self, query: str) -> Optional[str]:
+        """Generate a hypothetical document snippet for query expansion (HyDE).
+        Returns a short hypothetical answer, or None if no LLM is available."""
+        if not self.llm_provider:
+            return None
+
+        prompt = (
+            "Write a short, factual paragraph (3-5 sentences) that would answer this question "
+            "in a Standard Operating Procedure document. Do not include citations or headings. "
+            f"Just write the content.\n\nQuestion: {query}"
+        )
+
+        try:
+            if self.llm_provider in ('openai', 'lm_internal') and self._openai_client:
+                resp = self._openai_client.chat.completions.create(
+                    model=self._llm_model or 'gpt-4o-mini',
+                    messages=[{'role': 'user', 'content': prompt}],
+                    max_tokens=200, temperature=0.0
+                )
+                return resp.choices[0].message.content
+            elif self.llm_provider == 'anthropic' and self._anthropic_client:
+                resp = self._anthropic_client.messages.create(
+                    model=self._llm_model, max_tokens=200,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    temperature=0.0
+                )
+                return resp.content[0].text
+            elif self.llm_provider == 'ollama' and self.use_ollama:
+                resp = ollama.chat(
+                    model=self.ollama_model,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    options={'temperature': 0.0, 'num_predict': 200}
+                )
+                return resp['message']['content']
+        except Exception as e:
+            print(f"HyDE expansion failed (non-fatal): {e}")
+        return None
 
     def search(self, query: str, top_k: int = 5, rerank: bool = True) -> List[Dict]:
         """
@@ -145,31 +257,61 @@ class SOPSearcher:
                 self.query_cache.move_to_end(cache_key)
                 return self.query_cache[cache_key]
 
-        # Embed query
-        query_embedding = self.model.encode([query], convert_to_numpy=True)
+        # HyDE: if an LLM is available, expand query with a hypothetical answer
+        hyde_text = self._hyde_expand(query)
+        if hyde_text:
+            # Embed both original query and hypothetical answer, then average
+            embeddings = self.model.encode([query, hyde_text], convert_to_numpy=True)
+            query_embedding = np.mean(embeddings, axis=0, keepdims=True)
+        else:
+            query_embedding = self.model.encode([query], convert_to_numpy=True)
 
         # Normalize query embedding for cosine similarity
         query_embedding = query_embedding.astype('float32')
         faiss.normalize_L2(query_embedding)
 
-        # Search FAISS index (get more results for re-ranking)
-        retrieve_k = top_k * 3 if (rerank and self.use_reranker) else top_k
-        distances, indices = self.index.search(
-            query_embedding,
-            retrieve_k
-        )
+        # --- Semantic retrieval (FAISS) ---
+        retrieve_k = min(top_k * 4, len(self.metadata)) if (rerank and self.use_reranker) else top_k
+        distances, indices = self.index.search(query_embedding, retrieve_k)
+
+        faiss_ranks = {}  # idx -> rank (1-based)
+        for rank, idx in enumerate(indices[0], 1):
+            if idx != -1:
+                faiss_ranks[int(idx)] = rank
+
+        # --- Keyword retrieval (BM25) ---
+        bm25_scores = self.bm25.get_scores(query.lower().split())
+        bm25_top = np.argsort(bm25_scores)[::-1][:retrieve_k]
+        bm25_ranks = {}  # idx -> rank (1-based)
+        for rank, idx in enumerate(bm25_top, 1):
+            if bm25_scores[idx] > 0:
+                bm25_ranks[int(idx)] = rank
+
+        # --- Reciprocal Rank Fusion (RRF) ---
+        k_rrf = 60  # Standard RRF constant
+        all_indices = set(faiss_ranks.keys()) | set(bm25_ranks.keys())
+        rrf_scores = {}
+        for idx in all_indices:
+            score = 0.0
+            if idx in faiss_ranks:
+                score += 1.0 / (k_rrf + faiss_ranks[idx])
+            if idx in bm25_ranks:
+                score += 1.0 / (k_rrf + bm25_ranks[idx])
+            rrf_scores[idx] = score
+
+        # Sort by RRF score and take top candidates
+        fused_top = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)[:retrieve_k]
 
         # Prepare results
         results = []
-        for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
-            if idx == -1:  # FAISS returns -1 for missing results
-                continue
-
+        for rank, idx in enumerate(fused_top, 1):
             chunk = self.metadata[idx]
+            # Use FAISS distance for similarity display if available, else estimate
+            faiss_dist = float(distances[0][faiss_ranks[idx] - 1]) if idx in faiss_ranks else 0.0
             result = {
-                'rank': i + 1,
-                'score': float(distance),
-                'similarity': self._distance_to_similarity(float(distance)),
+                'rank': rank,
+                'score': rrf_scores[idx],
+                'similarity': self._distance_to_similarity(faiss_dist),
                 'chunk_id': chunk['chunk_id'],
                 'doc_name': chunk['doc_name'],
                 'page': chunk['page'],
@@ -266,33 +408,61 @@ class SOPSearcher:
             'index_type': self.config['index_type']
         }
 
-    def _build_prompt(self, query: str, results: List[Dict], max_context_chunks: int = 5):
+    def _build_prompt(self, query: str, results: List[Dict], max_context_chunks: int = 8):
         """Build system and user prompts for answer generation."""
         context_chunks = results[:max_context_chunks]
         context = "\n\n".join([
-            f"[Source: {chunk['doc_name']}, Page {chunk['page']}]\n{chunk['text']}"
+            f"[Source: {chunk['doc_name']}, Page {chunk['page']}, Section: {chunk.get('section', 'N/A')}]\n{chunk['text']}"
             for chunk in context_chunks
         ])
 
-        system_prompt = """You are a helpful assistant specialized in Standard Operating Procedures (SOPs).
+        system_prompt = """You are a technical documentation assistant specialized in Standard Operating Procedures (SOPs).
 Your role is to answer questions based ONLY on the provided context from SOP documents.
 
-Guidelines:
-- Provide clear, accurate answers based on the context
-- Cite specific sources when possible (e.g., "According to page X...")
+Formatting requirements:
+- Respond in **Markdown** format
+- Use headings (##), bold, numbered lists, and bullet points for clarity
+- For procedural questions, provide complete **step-by-step instructions** with every detail needed to follow along
+- Include ALL relevant details from the source material — do not summarize away important specifics
+
+Citation requirements:
+- Use numbered footnotes for citations: place a superscript marker like [^1] in the text after the relevant claim or instruction
+- At the END of your response, include a "References" section with each footnote, e.g.:
+  [^1]: SBIRS_SMARTBOOKrev3, Page 27
+  [^2]: sample-sop, Page 3
+- Reuse the same footnote number when citing the same source page again
+- Every factual claim or procedural step MUST have at least one footnote
+
+Other guidelines:
 - If the answer is not in the context, say so clearly
-- Be concise but complete
-- Use bullet points or numbered lists when appropriate
-- Highlight any safety warnings or important notes"""
+- Highlight safety warnings, prerequisites, or important notes with **bold** or > blockquotes
+- Include exact values, commands, paths, and configuration details when present in the source"""
 
         user_prompt = f"""Context from SOP documents:
 {context}
 
 Question: {query}
 
-Please provide a clear answer based on the context above."""
+Provide a thorough, step-by-step answer with citations to the source documents."""
 
         return system_prompt, user_prompt
+
+    def _generate_anthropic(self, system_prompt: str, user_prompt: str) -> Optional[str]:
+        """Generate answer via Anthropic API."""
+        try:
+            response = self._anthropic_client.messages.create(
+                model=self._llm_model,
+                max_tokens=2000,
+                system=system_prompt,
+                messages=[
+                    {'role': 'user', 'content': user_prompt}
+                ],
+                temperature=0.3
+            )
+            return response.content[0].text
+        except Exception as e:
+            print(f"Error generating answer with Anthropic: {e}")
+            return f"[LLM Error] {e}"
 
     def _generate_openai(self, system_prompt: str, user_prompt: str) -> Optional[str]:
         """Generate answer via OpenAI-compatible API."""
@@ -303,7 +473,7 @@ Please provide a clear answer based on the context above."""
                     {'role': 'user', 'content': user_prompt}
                 ],
                 'temperature': 0.3,
-                'max_tokens': 500
+                'max_tokens': 2000
             }
             if self._llm_model:
                 kwargs['model'] = self._llm_model
@@ -314,7 +484,10 @@ Please provide a clear answer based on the context above."""
             return response.choices[0].message.content
         except Exception as e:
             print(f"Error generating answer with OpenAI API: {e}")
-            return None
+            print(f"  → base_url: {self._api_base}")
+            print(f"  → model: {self._llm_model}")
+            print(f"  → Full target: {self._api_base}/chat/completions")
+            return f"[LLM Error] {e}"
 
     def _generate_ollama(self, system_prompt: str, user_prompt: str) -> Optional[str]:
         """Generate answer via local Ollama."""
@@ -327,13 +500,13 @@ Please provide a clear answer based on the context above."""
                 ],
                 options={
                     'temperature': 0.3,
-                    'num_predict': 500
+                    'num_predict': 2000
                 }
             )
             return response['message']['content']
         except Exception as e:
             print(f"Error generating answer with Ollama: {e}")
-            return None
+            return f"[LLM Error] {e}"
 
     def generate_answer(
         self,
@@ -357,7 +530,9 @@ Please provide a clear answer based on the context above."""
 
         system_prompt, user_prompt = self._build_prompt(query, results, max_context_chunks)
 
-        if self.llm_provider == 'openai' and self._openai_client:
+        if self.llm_provider == 'anthropic' and self._anthropic_client:
+            return self._generate_anthropic(system_prompt, user_prompt)
+        elif self.llm_provider in ('openai', 'lm_internal') and self._openai_client:
             return self._generate_openai(system_prompt, user_prompt)
         elif self.llm_provider == 'ollama' and self.use_ollama:
             return self._generate_ollama(system_prompt, user_prompt)

@@ -17,7 +17,7 @@ class SOPChunker:
         self,
         processed_dir: str,
         chunk_size: int = 800,
-        overlap: int = 100
+        overlap: int = 200
     ):
         self.processed_dir = Path(processed_dir)
         self.chunk_size = chunk_size
@@ -44,42 +44,68 @@ class SOPChunker:
             char_offset += len(line) + 1  # +1 for the newline
         return headers
 
+    def _split_sentences(self, text: str) -> List[tuple]:
+        """Split text into sentences, returning (char_start, char_end, sentence_text) tuples."""
+        # Split on sentence-ending punctuation followed by whitespace or end-of-string,
+        # also split on newlines (common in SOPs for numbered steps)
+        sentence_pattern = re.compile(
+            r'(?<=[.!?])\s+|\n\s*\n|\n(?=\d+[.\)]\s)|\n(?=[A-Z])'
+        )
+
+        sentences = []
+        last_end = 0
+        for match in sentence_pattern.finditer(text):
+            start = last_end
+            end = match.start()
+            sent = text[start:end].strip()
+            if sent:
+                sentences.append((start, end, sent))
+            last_end = match.end()
+
+        # Remaining text
+        remaining = text[last_end:].strip()
+        if remaining:
+            sentences.append((last_end, len(text), remaining))
+
+        # Fallback: if regex produced nothing useful, split on newlines
+        if not sentences and text.strip():
+            sentences.append((0, len(text), text.strip()))
+
+        return sentences
+
     def chunk_text(self, text: str, metadata: Dict) -> List[Dict]:
-        """Split text into overlapping chunks."""
+        """Split text into overlapping chunks using sentence boundaries."""
         chunks = []
-        words = text.split()
 
         # Detect sections for better chunking (returns char offsets)
         sections = self.detect_section_headers(text)
 
-        # Build word-to-character offset map
-        word_char_offsets = []
-        pos = 0
-        for word in words:
-            idx = text.find(word, pos)
-            word_char_offsets.append(idx)
-            pos = idx + len(word)
+        # Split into sentences
+        sentences = self._split_sentences(text)
+        if not sentences:
+            return chunks
 
-        # Calculate word-based chunk size
-        words_per_chunk = self.chunk_size // 5  # Rough estimate
-        overlap_words = self.overlap // 5
+        # Group sentences into chunks respecting size limits
+        current_sents = []   # indices into sentences list
+        current_len = 0
 
-        for i in range(0, len(words), words_per_chunk - overlap_words):
-            chunk_words = words[i:i + words_per_chunk]
-            chunk_text = ' '.join(chunk_words)
+        def flush_chunk(sent_indices):
+            """Create a chunk from the given sentence indices."""
+            if not sent_indices:
+                return
+            first = sentences[sent_indices[0]]
+            last = sentences[sent_indices[-1]]
+            char_start = first[0]
+            char_end = last[1]
+            chunk_text = ' '.join(sentences[si][2] for si in sent_indices)
 
-            # Compute actual character offsets
-            char_start = word_char_offsets[i]
-            last_word_idx = min(i + len(chunk_words) - 1, len(words) - 1)
-            char_end = word_char_offsets[last_word_idx] + len(words[last_word_idx])
-
-            # Find closest section header using character offsets
+            # Find closest section header
             section_header = "Unknown Section"
             for sec_offset, sec_name in sections:
                 if sec_offset <= char_start:
                     section_header = sec_name
 
-            chunk = {
+            chunks.append({
                 'chunk_id': f"{metadata['doc_name']}_p{metadata['page']}_c{len(chunks)}",
                 'doc_name': metadata['doc_name'],
                 'page': metadata['page'],
@@ -87,12 +113,35 @@ class SOPChunker:
                 'text': chunk_text,
                 'char_start': char_start,
                 'char_end': char_end
-            }
-            chunks.append(chunk)
+            })
 
-            # Stop if we've processed all words
-            if i + words_per_chunk >= len(words):
-                break
+        i = 0
+        while i < len(sentences):
+            sent_len = len(sentences[i][2])
+
+            if current_len + sent_len + 1 <= self.chunk_size or not current_sents:
+                current_sents.append(i)
+                current_len += sent_len + 1
+                i += 1
+            else:
+                flush_chunk(current_sents)
+
+                # Calculate overlap: walk backwards from end to find sentences that fit
+                overlap_sents = []
+                overlap_len = 0
+                for j in reversed(current_sents):
+                    s_len = len(sentences[j][2])
+                    if overlap_len + s_len + 1 > self.overlap:
+                        break
+                    overlap_sents.insert(0, j)
+                    overlap_len += s_len + 1
+
+                current_sents = overlap_sents
+                current_len = overlap_len
+
+        # Flush remaining
+        if current_sents:
+            flush_chunk(current_sents)
 
         return chunks
 
@@ -130,7 +179,7 @@ def main():
     base_dir = Path(__file__).parent.parent
     processed_dir = base_dir / 'data' / 'processed'
 
-    chunker = SOPChunker(processed_dir, chunk_size=800, overlap=100)
+    chunker = SOPChunker(processed_dir, chunk_size=800, overlap=200)
     chunks = chunker.process_all()
 
     print(f"\nTotal chunks: {len(chunks)}")

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quokka — SOP Search</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --bg: #f5f2ed;
@@ -293,6 +294,98 @@
         .answer-box-title svg { width: 18px; height: 18px; }
 
         .answer-text {
+            line-height: 1.7;
+        }
+
+        .answer-text h1, .answer-text h2, .answer-text h3 {
+            margin: 16px 0 8px;
+            color: var(--text);
+        }
+
+        .answer-text h2 { font-size: 1.05rem; }
+        .answer-text h3 { font-size: .95rem; }
+
+        .answer-text p { margin: 6px 0; }
+
+        .answer-text ul, .answer-text ol {
+            margin: 6px 0 6px 20px;
+            padding: 0;
+        }
+
+        .answer-text li { margin: 4px 0; }
+
+        .answer-text code {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: .85em;
+        }
+
+        .answer-text pre {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            font-size: .85em;
+        }
+
+        .answer-text pre code {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .answer-text blockquote {
+            border-left: 3px solid var(--primary);
+            margin: 8px 0;
+            padding: 6px 12px;
+            background: var(--primary-light);
+            border-radius: 0 6px 6px 0;
+            font-size: .9em;
+        }
+
+        .answer-text strong { color: var(--text); }
+
+        .fn-ref a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: .75em;
+            cursor: pointer;
+        }
+
+        .fn-ref a:hover { text-decoration: underline; }
+
+        .fn-section {
+            margin-top: 20px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            font-size: .82rem;
+            color: var(--text-muted);
+        }
+
+        .fn-section strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-light);
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .fn-section ol {
+            margin: 0;
+            padding-left: 24px;
+        }
+
+        .fn-section li {
+            margin: 3px 0;
+            line-height: 1.5;
+        }
+
+        .answer-text-legacy {
             font-size: .92rem;
             line-height: 1.7;
             color: var(--text);
@@ -591,6 +684,202 @@
             justify-content: center;
         }
 
+        /* ── POUCH (DROP ZONE) ────────────────────────── */
+        .pouch-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .pouch-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: background .1s;
+        }
+
+        .pouch-toggle:hover { background: var(--surface-alt); }
+
+        .pouch-toggle-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .pouch-toggle-left svg { width: 18px; height: 18px; color: var(--primary); }
+
+        .pouch-badge {
+            font-size: .72rem;
+            font-weight: 700;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 9px;
+            border-radius: 99px;
+        }
+
+        .pouch-chevron {
+            width: 18px;
+            height: 18px;
+            color: var(--text-light);
+            transition: transform .2s;
+        }
+
+        .pouch-card.open .pouch-chevron { transform: rotate(180deg); }
+
+        .pouch-body {
+            display: none;
+            padding: 0 20px 20px;
+        }
+
+        .pouch-card.open .pouch-body { display: block; }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+            margin-bottom: 16px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .drop-zone svg {
+            width: 36px;
+            height: 36px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .drop-zone.dragover svg { color: var(--primary); }
+
+        .drop-zone p {
+            font-size: .88rem;
+            color: var(--text-muted);
+        }
+
+        .drop-zone .browse-link {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .drop-zone .formats {
+            font-size: .75rem;
+            color: var(--text-light);
+            margin-top: 6px;
+        }
+
+        .pouch-files { list-style: none; }
+
+        .pouch-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: background .1s;
+        }
+
+        .pouch-file:hover { background: var(--surface-alt); }
+
+        .pouch-file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .pouch-file-ext {
+            font-size: .65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 2px 7px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .pouch-file-name {
+            font-size: .85rem;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pouch-file-size {
+            font-size: .75rem;
+            color: var(--text-light);
+            flex-shrink: 0;
+        }
+
+        .pouch-file-del {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 4px;
+            border-radius: 4px;
+            transition: color .15s, background .15s;
+            flex-shrink: 0;
+            display: flex;
+        }
+
+        .pouch-file-del:hover {
+            color: var(--danger);
+            background: var(--danger-light);
+        }
+
+        .pouch-file-del svg { width: 14px; height: 14px; }
+
+        .pouch-empty {
+            text-align: center;
+            padding: 12px;
+            font-size: .82rem;
+            color: var(--text-light);
+        }
+
+        .pouch-upload-progress {
+            font-size: .82rem;
+            color: var(--primary);
+            font-weight: 600;
+            padding: 8px 0;
+        }
+
+        .build-progress {
+            font-size: .82rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .build-progress.error {
+            color: var(--danger);
+        }
+
+        .build-progress.done {
+            color: var(--accent);
+        }
+
         /* ── RESPONSIVE ──────────────────────────────── */
         @media (max-width: 640px) {
             .search-row { flex-direction: column; }
@@ -624,6 +913,7 @@
     </a>
     <div class="nav-actions">
         <div class="nav-pill stats" id="navStats">Loading...</div>
+        <div class="nav-pill stats" id="llmPill" style="display:none" title="LLM provider status"></div>
         <button class="nav-pill settings-btn" onclick="toggleSettings()" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
@@ -679,9 +969,37 @@
         </div>
     </div>
 
+    <!-- ── POUCH ──────────────────────────────────────── -->
+    <div class="pouch-card" id="pouchCard">
+        <div class="pouch-toggle" onclick="togglePouch()">
+            <div class="pouch-toggle-left">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Pouch
+                <span class="pouch-badge" id="pouchBadge">0 files</span>
+            </div>
+            <svg class="pouch-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="pouch-body">
+            <div class="drop-zone" id="dropZone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>Drag &amp; drop files here, or <span class="browse-link" onclick="document.getElementById('fileInput').click()">browse</span></p>
+                <p class="formats">Accepts .pdf, .docx, .txt</p>
+                <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" style="display:none" onchange="handleFileSelect(this.files)">
+            </div>
+            <div id="pouchStatus"></div>
+            <ul class="pouch-files" id="pouchFileList"></ul>
+            <div style="margin-top:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="buildBtn" onclick="startBuild()" style="padding:10px 22px; font-size:.85rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Build Index
+                </button>
+                <span class="build-progress" id="buildProgress"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- results area -->
     <div id="answerContainer"></div>
-    <div id="feedbackContainer"></div>
 
     <div class="results-header" id="resultsHeader" style="display:none;">
         <h2>Search Results</h2>
@@ -701,6 +1019,7 @@
             <p class="sub">Your documents are loaded in the pouch and ready to search</p>
         </div>
     </div>
+    <div id="feedbackContainer"></div>
 </div>
 
 <!-- ── SETTINGS DRAWER ────────────────────────────────── -->
@@ -730,42 +1049,55 @@
             <div class="setting-input-group">
                 <label>LLM Provider</label>
                 <select class="setting-input" id="settingProvider" style="font-family:var(--font);" onchange="onProviderChange()">
-                    <option value="ollama">Ollama (local)</option>
-                    <option value="openai">OpenAI-compatible API</option>
+                    <option value="ollama">Ollama (local — fully offline)</option>
+                    <option value="lm_internal">LM Internal (on-network)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="openai">OpenAI / compatible API</option>
                 </select>
             </div>
 
             <div id="apiSettings" style="display:none;">
-                <div class="setting-input-group">
-                    <label>API Key</label>
-                    <input class="setting-input" type="password" id="settingApiKey" placeholder="sk-...">
-                    <div class="hint">Stored in browser only — never sent to our server</div>
+                <div id="dataNoticeExternal" style="background:var(--danger-light); color:var(--danger); font-size:.78rem; padding:10px 12px; border-radius:6px; margin-bottom:14px; line-height:1.5;">
+                    <strong>Data notice:</strong> When AI Answer is enabled with an external API, your query and the top matching document chunks are sent to the API provider. Do not use with classified data.
+                </div>
+                <div id="dataNoticeInternal" style="background:var(--accent-light); color:var(--accent); font-size:.78rem; padding:10px 12px; border-radius:6px; margin-bottom:14px; line-height:1.5; display:none;">
+                    <strong>Internal network:</strong> Queries and document chunks stay within the LM network. No data leaves the enterprise boundary.
                 </div>
 
                 <div class="setting-input-group">
+                    <label>API Key</label>
+                    <input class="setting-input" type="password" id="settingApiKey" placeholder="sk-...">
+                    <div class="hint">Sent to your local Quokka server only, never stored on disk</div>
+                </div>
+
+                <div class="setting-input-group" id="apiBaseGroup">
                     <label>API Base URL</label>
                     <input class="setting-input" type="url" id="settingApiBase" placeholder="https://api.openai.com/v1">
-                    <div class="hint">Change for Azure, vLLM, LiteLLM, or other providers</div>
+                    <div class="hint">Change for Azure, vLLM, LiteLLM, etc.</div>
                 </div>
 
                 <div class="setting-input-group">
                     <label>Model</label>
-                    <input class="setting-input" type="text" id="settingModel" placeholder="gpt-4o-mini">
+                    <select class="setting-input" id="settingModel" style="font-family:var(--font);"></select>
                 </div>
             </div>
 
-            <div class="setting-input-group">
+            <div class="setting-input-group" id="ollamaModelGroup">
                 <label>Ollama Model</label>
                 <input class="setting-input" type="text" id="settingOllamaModel" value="llama3.1:8b" placeholder="llama3.1:8b">
-                <div class="hint">Used when Ollama is the selected provider</div>
+                <div class="hint">Type any model name installed in Ollama</div>
             </div>
         </div>
 
         <div class="settings-section">
             <h4>About Quokka</h4>
             <p style="font-size:.82rem; color:var(--text-muted); line-height:1.6;">
-                Quokka is a 100% offline semantic search tool for Standard Operating Procedures.
-                All processing happens locally — no data ever leaves your machine.
+                Quokka is a semantic search tool for Standard Operating Procedures.
+                Embedding, indexing, and search all run 100% locally.
+            </p>
+            <p style="font-size:.82rem; color:var(--text-muted); line-height:1.6; margin-top:6px;">
+                <strong>Ollama:</strong> Everything stays on your machine.<br>
+                <strong>External API:</strong> Query + top chunks are sent to the provider when AI Answer is on.
             </p>
         </div>
     </div>
@@ -782,15 +1114,15 @@
     function loadSettings() {
         const s = JSON.parse(localStorage.getItem('quokka_settings') || '{}');
         if (s.provider) document.getElementById('settingProvider').value = s.provider;
+        onProviderChange(); // Build model dropdown for the selected provider
         if (s.apiKey) document.getElementById('settingApiKey').value = s.apiKey;
         if (s.apiBase) document.getElementById('settingApiBase').value = s.apiBase;
         if (s.model) document.getElementById('settingModel').value = s.model;
         if (s.ollamaModel) document.getElementById('settingOllamaModel').value = s.ollamaModel;
         if (s.rerank !== undefined) document.getElementById('settingRerank').checked = s.rerank;
-        onProviderChange();
     }
 
-    function saveSettings() {
+    async function saveSettings() {
         const s = {
             provider: document.getElementById('settingProvider').value,
             apiKey: document.getElementById('settingApiKey').value,
@@ -800,6 +1132,21 @@
             rerank: document.getElementById('settingRerank').checked
         };
         localStorage.setItem('quokka_settings', JSON.stringify(s));
+
+        // Push LLM config to the server
+        try {
+            const r = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(s)
+            });
+            const d = await r.json();
+            if (d.error) {
+                alert('Settings saved locally. Server: ' + d.error);
+            }
+        } catch { /* server may not be ready */ }
+
+        loadLlmStatus();
         toggleSettings();
     }
 
@@ -807,15 +1154,88 @@
         return JSON.parse(localStorage.getItem('quokka_settings') || '{}');
     }
 
+    const MODEL_OPTIONS = {
+        lm_internal: [
+            { value: 'gpt-oss-120b', label: 'GPT-OSS 120B' },
+        ],
+        anthropic: [
+            { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+            { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+            { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku (fast)' },
+            { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+        ],
+        openai: [
+            { value: 'gpt-4o-mini', label: 'GPT-4o Mini (fast)' },
+            { value: 'gpt-4o', label: 'GPT-4o' },
+            { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+            { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+        ]
+    };
+
     function onProviderChange() {
-        const isApi = document.getElementById('settingProvider').value === 'openai';
-        document.getElementById('apiSettings').style.display = isApi ? 'block' : 'none';
+        const prov = document.getElementById('settingProvider').value;
+        const needsApi = prov === 'openai' || prov === 'anthropic' || prov === 'lm_internal';
+        document.getElementById('apiSettings').style.display = needsApi ? 'block' : 'none';
+        document.getElementById('ollamaModelGroup').style.display = prov === 'ollama' ? 'block' : 'none';
+
+        // Show/hide base URL (Anthropic doesn't need it; LM Internal does)
+        document.getElementById('apiBaseGroup').style.display = (prov === 'openai' || prov === 'lm_internal') ? 'block' : 'none';
+
+        // Data notices: internal vs external
+        document.getElementById('dataNoticeExternal').style.display = (prov === 'openai' || prov === 'anthropic') ? 'block' : 'none';
+        document.getElementById('dataNoticeInternal').style.display = prov === 'lm_internal' ? 'block' : 'none';
+
+        // Populate model dropdown
+        const select = document.getElementById('settingModel');
+        const models = MODEL_OPTIONS[prov] || [];
+        select.innerHTML = models.map(m =>
+            `<option value="${m.value}">${m.label}</option>`
+        ).join('');
+
+        // Key placeholder and base URL hint
+        const keyInput = document.getElementById('settingApiKey');
+        const baseInput = document.getElementById('settingApiBase');
+        if (prov === 'lm_internal') {
+            keyInput.placeholder = 'Internal API key';
+            baseInput.placeholder = 'https://your-lm-endpoint/v1';
+        } else if (prov === 'anthropic') {
+            keyInput.placeholder = 'sk-ant-...';
+        } else {
+            keyInput.placeholder = 'sk-...';
+            baseInput.placeholder = 'https://api.openai.com/v1';
+        }
     }
 
     // ── SETTINGS DRAWER ─────────────────────────────
     function toggleSettings() {
         document.getElementById('drawerOverlay').classList.toggle('open');
         document.getElementById('settingsDrawer').classList.toggle('open');
+    }
+
+    // ── LLM STATUS ──────────────────────────────────
+    async function loadLlmStatus() {
+        const pill = document.getElementById('llmPill');
+        try {
+            const r = await fetch('/api/settings');
+            const d = await r.json();
+            if (d.provider && d.provider !== 'none') {
+                const labels = { ollama: 'Ollama', lm_internal: 'LM Internal', anthropic: 'Claude', openai: 'OpenAI' };
+                const label = labels[d.provider] || d.provider;
+                const model = d.model ? ` (${d.model})` : '';
+                pill.textContent = `LLM: ${label}${model}`;
+                pill.style.display = 'flex';
+                const isLocal = d.provider === 'ollama' || d.provider === 'lm_internal';
+                pill.style.background = isLocal ? 'var(--accent-light)' : 'var(--primary-light)';
+                pill.style.color = isLocal ? 'var(--accent)' : 'var(--primary)';
+            } else {
+                pill.textContent = 'LLM: Off';
+                pill.style.display = 'flex';
+                pill.style.background = 'var(--surface-alt)';
+                pill.style.color = 'var(--text-light)';
+            }
+        } catch {
+            pill.style.display = 'none';
+        }
     }
 
     // ── STATS ───────────────────────────────────────
@@ -853,6 +1273,9 @@
         const btn = document.getElementById('searchButton');
 
         if (!query) return;
+
+        // Collapse pouch so results are front-and-center
+        document.getElementById('pouchCard').classList.remove('open');
 
         btn.disabled = true;
         answerBox.innerHTML = '';
@@ -901,7 +1324,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                             Quokka's Answer
                         </div>
-                        <div class="answer-text">${escapeHtml(data.answer)}</div>
+                        <div class="answer-text">${renderAnswer(data.answer)}</div>
                     </div>`;
             }
 
@@ -942,6 +1365,41 @@
         }
     }
 
+    // ── MARKDOWN RENDERING ────────────────────────────
+    function renderAnswer(text) {
+        // Pre-process footnotes before marked parses the markdown
+        // Extract footnote definitions: [^N]: text
+        const footnoteDefs = {};
+        let body = text.replace(/^\[\^(\d+)\]:\s*(.+)$/gm, (_, id, content) => {
+            footnoteDefs[id] = content.trim();
+            return ''; // Remove from body
+        });
+
+        // Parse remaining markdown
+        let html;
+        if (typeof marked !== 'undefined') {
+            try { html = marked.parse(body); } catch { html = null; }
+        }
+        if (!html) html = escapeHtml(body).replace(/\n/g, '<br>');
+
+        // Replace inline [^N] markers with superscript links
+        html = html.replace(/\[\^(\d+)\]/g, (_, id) =>
+            `<sup class="fn-ref"><a href="#fn-${id}" title="${escapeHtml(footnoteDefs[id] || '')}">${id}</a></sup>`
+        );
+
+        // Append footnotes section if any exist
+        const ids = Object.keys(footnoteDefs).sort((a, b) => a - b);
+        if (ids.length > 0) {
+            html += '<div class="fn-section"><strong>References</strong><ol>';
+            ids.forEach(id => {
+                html += `<li id="fn-${id}" value="${id}">${escapeHtml(footnoteDefs[id])}</li>`;
+            });
+            html += '</ol></div>';
+        }
+
+        return html;
+    }
+
     // ── FEEDBACK ────────────────────────────────────
     async function submitRating(rating) {
         if (!currentQueryId) return;
@@ -976,10 +1434,201 @@
         return escaped;
     }
 
+    // ── POUCH ───────────────────────────────────────
+    function togglePouch() {
+        document.getElementById('pouchCard').classList.toggle('open');
+        // Load files when first opened
+        if (document.getElementById('pouchCard').classList.contains('open')) {
+            loadPouchFiles();
+        }
+    }
+
+    async function loadPouchFiles() {
+        try {
+            const r = await fetch('/api/pouch');
+            const d = await r.json();
+            renderPouchFiles(d.files || []);
+        } catch {
+            document.getElementById('pouchFileList').innerHTML =
+                '<div class="pouch-empty">Could not load pouch contents</div>';
+        }
+    }
+
+    function renderPouchFiles(files) {
+        const badge = document.getElementById('pouchBadge');
+        badge.textContent = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+
+        const list = document.getElementById('pouchFileList');
+        if (files.length === 0) {
+            list.innerHTML = '<div class="pouch-empty">Pouch is empty — drop some SOPs in!</div>';
+            return;
+        }
+
+        list.innerHTML = files.map(f => `
+            <li class="pouch-file">
+                <div class="pouch-file-info">
+                    <span class="pouch-file-ext">${escapeHtml(f.ext.replace('.',''))}</span>
+                    <span class="pouch-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="pouch-file-size">${formatSize(f.size)}</span>
+                    <button class="pouch-file-del" title="Remove from pouch" onclick="deletePouchFile('${escapeHtml(f.name)}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    async function handleFileSelect(files) {
+        if (!files || files.length === 0) return;
+        await uploadFiles(files);
+        document.getElementById('fileInput').value = '';
+    }
+
+    async function uploadFiles(files) {
+        const status = document.getElementById('pouchStatus');
+        status.innerHTML = '<div class="pouch-upload-progress">Uploading...</div>';
+
+        const formData = new FormData();
+        for (const f of files) {
+            formData.append('files', f);
+        }
+
+        try {
+            const r = await fetch('/api/pouch', { method: 'POST', body: formData });
+            const d = await r.json();
+
+            let msg = d.message || 'Done';
+            if (d.skipped && d.skipped.length > 0) {
+                msg += ' | Skipped: ' + d.skipped.map(s => s.name + ' (' + s.reason + ')').join(', ');
+            }
+            status.innerHTML = `<div class="pouch-upload-progress">${escapeHtml(msg)}</div>`;
+            setTimeout(() => { status.innerHTML = ''; }, 4000);
+
+            await loadPouchFiles();
+        } catch (err) {
+            status.innerHTML = `<div class="error-box">Upload failed: ${escapeHtml(err.message)}</div>`;
+        }
+    }
+
+    async function deletePouchFile(name) {
+        if (!confirm(`Remove "${name}" from the pouch?`)) return;
+        try {
+            await fetch(`/api/pouch/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            await loadPouchFiles();
+        } catch (err) {
+            alert('Could not remove file: ' + err.message);
+        }
+    }
+
+    // ── BUILD INDEX ─────────────────────────────────
+    async function startBuild() {
+        const btn = document.getElementById('buildBtn');
+        const prog = document.getElementById('buildProgress');
+
+        btn.disabled = true;
+        prog.className = 'build-progress';
+        prog.textContent = 'Starting build...';
+
+        try {
+            const r = await fetch('/api/pouch/build', { method: 'POST' });
+            const d = await r.json();
+            if (d.error) {
+                prog.className = 'build-progress error';
+                prog.textContent = d.error;
+                btn.disabled = false;
+                return;
+            }
+            pollBuild();
+        } catch (err) {
+            prog.className = 'build-progress error';
+            prog.textContent = 'Failed to start build: ' + err.message;
+            btn.disabled = false;
+        }
+    }
+
+    function pollBuild() {
+        const btn = document.getElementById('buildBtn');
+        const prog = document.getElementById('buildProgress');
+
+        const interval = setInterval(async () => {
+            try {
+                const r = await fetch('/api/pouch/build/status');
+                const d = await r.json();
+
+                if (d.error) {
+                    prog.className = 'build-progress error';
+                    prog.textContent = 'Error: ' + d.error;
+                    btn.disabled = false;
+                    clearInterval(interval);
+                    return;
+                }
+
+                prog.className = 'build-progress';
+                prog.textContent = d.step || 'Working...';
+
+                if (d.done) {
+                    prog.className = 'build-progress done';
+                    prog.textContent = 'Index built — ready to search!';
+                    btn.disabled = false;
+                    clearInterval(interval);
+                    loadStats();
+                    // Push saved settings to the newly initialized searcher
+                    const saved = getSettings();
+                    if (saved.provider) {
+                        fetch('/api/settings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(saved)
+                        }).then(() => loadLlmStatus()).catch(() => {});
+                    } else {
+                        loadLlmStatus();
+                    }
+                }
+
+                if (!d.running && !d.done) {
+                    btn.disabled = false;
+                    clearInterval(interval);
+                }
+            } catch {
+                // Keep polling
+            }
+        }, 1500);
+    }
+
+    // Drag-and-drop setup
+    function setupDropZone() {
+        const zone = document.getElementById('dropZone');
+        ['dragenter','dragover'].forEach(e => {
+            zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.add('dragover'); });
+        });
+        ['dragleave','drop'].forEach(e => {
+            zone.addEventListener(e, ev => { ev.preventDefault(); zone.classList.remove('dragover'); });
+        });
+        zone.addEventListener('drop', ev => {
+            const files = ev.dataTransfer.files;
+            if (files.length) uploadFiles(files);
+        });
+    }
+
     // ── INIT ────────────────────────────────────────
     document.getElementById('searchForm').addEventListener('submit', performSearch);
     loadStats();
     loadSettings();
+    loadLlmStatus();
+    setupDropZone();
+    // Pre-load pouch file count
+    fetch('/api/pouch').then(r=>r.json()).then(d=>{
+        document.getElementById('pouchBadge').textContent =
+            `${(d.files||[]).length} file${(d.files||[]).length!==1?'s':''}`;
+    }).catch(()=>{});
 </script>
 </body>
 </html>
