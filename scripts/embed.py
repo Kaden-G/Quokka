@@ -127,6 +127,77 @@ class EmbeddingIndexer:
             json.dump(config, f, indent=2)
         print(f"Config saved: {config_file}")
 
+    def load_existing_index(self):
+        """Load existing FAISS index and metadata. Returns (index, metadata) or (None, None)."""
+        index_file = self.index_dir / 'faiss.index'
+        metadata_file = self.index_dir / 'metadata.pkl'
+
+        if not index_file.exists() or not metadata_file.exists():
+            return None, None
+
+        index = faiss.read_index(str(index_file))
+        with open(metadata_file, 'rb') as f:
+            metadata = pickle.load(f)
+
+        return index, metadata
+
+    def get_source_manifest(self) -> Dict:
+        """Load the source file manifest (tracks what's been indexed)."""
+        manifest_file = self.index_dir / 'source_manifest.json'
+        if manifest_file.exists():
+            with open(manifest_file, 'r') as f:
+                return json.load(f)
+        return {}
+
+    def save_source_manifest(self, manifest: Dict):
+        """Save the source file manifest."""
+        manifest_file = self.index_dir / 'source_manifest.json'
+        with open(manifest_file, 'w') as f:
+            json.dump(manifest, f, indent=2)
+
+    def detect_changes(self, raw_dir: str) -> Dict:
+        """
+        Compare raw files against the stored manifest.
+        Returns {'new': [paths], 'modified': [paths], 'deleted': [names]}.
+        """
+        from pathlib import Path as P
+        raw_path = P(raw_dir)
+        manifest = self.get_source_manifest()
+
+        current_files = {}
+        for ext in ('*.pdf', '*.docx', '*.txt'):
+            for f in raw_path.glob(ext):
+                if not f.name.startswith('~$'):
+                    stat = f.stat()
+                    current_files[f.name] = {
+                        'path': str(f),
+                        'mtime': stat.st_mtime,
+                        'size': stat.st_size
+                    }
+
+        new_files = []
+        modified_files = []
+        deleted_names = []
+
+        # Find new and modified
+        for fname, info in current_files.items():
+            if fname not in manifest:
+                new_files.append(P(info['path']))
+            elif info['mtime'] != manifest[fname]['mtime'] or info['size'] != manifest[fname]['size']:
+                modified_files.append(P(info['path']))
+
+        # Find deleted
+        for fname in manifest:
+            if fname not in current_files:
+                deleted_names.append(fname)
+
+        return {
+            'new': new_files,
+            'modified': modified_files,
+            'deleted': deleted_names,
+            'current_files': current_files
+        }
+
     def build_index(self):
         """Full pipeline: load chunks, embed, build index."""
         # Load chunks
@@ -144,6 +215,66 @@ class EmbeddingIndexer:
         print("\n=== Index Build Complete ===")
         print(f"Total chunks indexed: {len(chunks)}")
         print(f"Index directory: {self.index_dir}")
+
+    def incremental_build(self, new_doc_names: List[str]):
+        """
+        Append new documents to existing index without re-embedding unchanged docs.
+
+        Args:
+            new_doc_names: List of doc_name stems that are new (already extracted & chunked)
+        """
+        existing_index, existing_metadata = self.load_existing_index()
+        if existing_index is None:
+            print("No existing index found, running full build...")
+            return self.build_index()
+
+        # Load all chunks and filter to just the new ones
+        all_chunks = self.load_chunks()
+        new_chunks = [c for c in all_chunks if c['doc_name'] in new_doc_names]
+
+        if not new_chunks:
+            print("No new chunks to index.")
+            return
+
+        print(f"Incrementally indexing {len(new_chunks)} new chunks from {len(new_doc_names)} document(s)...")
+
+        # Embed only the new chunks
+        new_embeddings = self.create_embeddings(new_chunks)
+
+        # Normalize and append to existing FAISS index
+        new_embeddings_norm = new_embeddings.astype('float32')
+        faiss.normalize_L2(new_embeddings_norm)
+        existing_index.add(new_embeddings_norm)
+
+        # Merge metadata
+        new_metadata = [
+            {
+                'chunk_id': c['chunk_id'],
+                'doc_name': c['doc_name'],
+                'page': c['page'],
+                'section': c['section'],
+                'text': c['text']
+            }
+            for c in new_chunks
+        ]
+        merged_metadata = existing_metadata + new_metadata
+
+        # Save updated index
+        faiss.write_index(existing_index, str(self.index_dir / 'faiss.index'))
+        with open(self.index_dir / 'metadata.pkl', 'wb') as f:
+            pickle.dump(merged_metadata, f)
+
+        # Update config
+        config_file = self.index_dir / 'config.json'
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        config['num_chunks'] = len(merged_metadata)
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        print(f"\n=== Incremental Index Update Complete ===")
+        print(f"Added: {len(new_chunks)} chunks")
+        print(f"Total indexed: {len(merged_metadata)} chunks")
 
 
 def main():

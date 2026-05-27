@@ -100,6 +100,37 @@ class DocumentExtractor:
             print(f"Error extracting {txt_path.name}: {e}")
         return chunks
 
+    def get_raw_files(self) -> List[Path]:
+        """Get all supported document files in the raw directory."""
+        files = []
+        for ext in ('*.pdf', '*.docx', '*.txt'):
+            for f in self.raw_dir.glob(ext):
+                if not f.name.startswith('~$'):  # Skip temp files
+                    files.append(f)
+        return sorted(files)
+
+    def extract_files(self, file_paths: List[Path]) -> Dict[str, List[Dict]]:
+        """Extract only the specified files. Returns {doc_name: [pages]}."""
+        all_extracts = {}
+        for fpath in file_paths:
+            print(f"Extracting: {fpath.name}")
+            if fpath.suffix.lower() == '.pdf':
+                extracts = self.extract_pdf(fpath)
+            elif fpath.suffix.lower() == '.docx':
+                extracts = self.extract_docx(fpath)
+            elif fpath.suffix.lower() == '.txt':
+                extracts = self.extract_txt(fpath)
+            else:
+                continue
+
+            all_extracts[fpath.stem] = extracts
+
+            output_file = self.processed_dir / f"{fpath.stem}.json"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(extracts, f, indent=2, ensure_ascii=False)
+
+        return all_extracts
+
     def extract_all(self) -> Dict[str, List[Dict]]:
         """Process all documents in raw directory."""
         all_extracts = {}
