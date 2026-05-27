@@ -5,7 +5,6 @@ Creates vector embeddings and builds FAISS index for semantic search.
 """
 
 import json
-import pickle
 from pathlib import Path
 from typing import List, Dict
 import numpy as np
@@ -108,9 +107,9 @@ class EmbeddingIndexer:
             for c in chunks
         ]
 
-        metadata_file = self.index_dir / 'metadata.pkl'
-        with open(metadata_file, 'wb') as f:
-            pickle.dump(metadata, f)
+        metadata_file = self.index_dir / 'metadata.json'
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False)
         print(f"Metadata saved: {metadata_file}")
 
         # Save index config
@@ -130,14 +129,23 @@ class EmbeddingIndexer:
     def load_existing_index(self):
         """Load existing FAISS index and metadata. Returns (index, metadata) or (None, None)."""
         index_file = self.index_dir / 'faiss.index'
-        metadata_file = self.index_dir / 'metadata.pkl'
+        metadata_json = self.index_dir / 'metadata.json'
+        metadata_pkl = self.index_dir / 'metadata.pkl'  # Backwards compat
 
-        if not index_file.exists() or not metadata_file.exists():
+        if not index_file.exists():
             return None, None
 
         index = faiss.read_index(str(index_file))
-        with open(metadata_file, 'rb') as f:
-            metadata = pickle.load(f)
+
+        if metadata_json.exists():
+            with open(metadata_json, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+        elif metadata_pkl.exists():
+            import pickle
+            with open(metadata_pkl, 'rb') as f:
+                metadata = pickle.load(f)
+        else:
+            return None, None
 
         return index, metadata
 
@@ -261,8 +269,8 @@ class EmbeddingIndexer:
 
         # Save updated index
         faiss.write_index(existing_index, str(self.index_dir / 'faiss.index'))
-        with open(self.index_dir / 'metadata.pkl', 'wb') as f:
-            pickle.dump(merged_metadata, f)
+        with open(self.index_dir / 'metadata.json', 'w', encoding='utf-8') as f:
+            json.dump(merged_metadata, f, ensure_ascii=False)
 
         # Update config
         config_file = self.index_dir / 'config.json'

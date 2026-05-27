@@ -5,7 +5,6 @@ Semantic search over indexed SOP chunks using FAISS.
 """
 
 import json
-import pickle
 import threading
 from collections import OrderedDict
 from pathlib import Path
@@ -43,10 +42,18 @@ class SOPSearcher:
         index_file = self.index_dir / 'faiss.index'
         self.index = faiss.read_index(str(index_file))
 
-        # Load metadata
-        metadata_file = self.index_dir / 'metadata.pkl'
-        with open(metadata_file, 'rb') as f:
-            self.metadata = pickle.load(f)
+        # Load metadata (JSON preferred, pickle fallback for old indexes)
+        metadata_json = self.index_dir / 'metadata.json'
+        metadata_pkl = self.index_dir / 'metadata.pkl'
+        if metadata_json.exists():
+            with open(metadata_json, 'r', encoding='utf-8') as f:
+                self.metadata = json.load(f)
+        elif metadata_pkl.exists():
+            import pickle
+            with open(metadata_pkl, 'rb') as f:
+                self.metadata = pickle.load(f)
+        else:
+            raise FileNotFoundError('No metadata file found in index directory')
 
         # Load embedding model
         model_name = self.config.get('model_name', 'BAAI/bge-small-en-v1.5')

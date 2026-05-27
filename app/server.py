@@ -53,13 +53,20 @@ def api_search():
         return jsonify({'error': 'Search engine not initialized'}), 500
 
     data = request.json
-    query = data.get('query', '').strip()
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be JSON'}), 400
+
+    query = str(data.get('query', '')).strip()
     top_k = data.get('top_k', 5)
     doc_filter = data.get('document', None)
     generate_answer = data.get('generate_answer', False)
 
     if not query:
         return jsonify({'error': 'Query cannot be empty'}), 400
+    if len(query) > 2000:
+        return jsonify({'error': 'Query too long (max 2000 characters)'}), 400
+    if not isinstance(top_k, int) or top_k < 1 or top_k > 100:
+        return jsonify({'error': 'top_k must be an integer between 1 and 100'}), 400
 
     try:
         start_time = time.time()
@@ -140,13 +147,18 @@ def api_feedback():
         return jsonify({'error': 'Metrics tracker not initialized'}), 500
 
     data = request.json
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be JSON'}), 400
+
     query_id = data.get('query_id')
     rating = data.get('rating')  # 1-5
     relevant_results = data.get('relevant_results', [])
-    comments = data.get('comments', '')
+    comments = str(data.get('comments', ''))[:1000]  # Cap comment length
 
-    if not query_id or not rating:
-        return jsonify({'error': 'query_id and rating required'}), 400
+    if not query_id or not isinstance(query_id, int):
+        return jsonify({'error': 'query_id must be an integer'}), 400
+    if not isinstance(rating, int) or rating < 1 or rating > 5:
+        return jsonify({'error': 'rating must be an integer between 1 and 5'}), 400
 
     try:
         metrics_tracker.log_feedback(
@@ -167,7 +179,7 @@ def api_metrics():
         return jsonify({'error': 'Metrics tracker not initialized'}), 500
 
     try:
-        days = int(request.args.get('days', 7))
+        days = min(max(int(request.args.get('days', 7)), 1), 365)
         metrics = {
             'query_stats': metrics_tracker.get_query_stats(days),
             'top_queries': metrics_tracker.get_top_queries(10),
