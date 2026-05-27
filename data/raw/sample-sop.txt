@@ -1,0 +1,258 @@
+STANDARD OPERATING PROCEDURE
+GSE Thermal Control System
+Document: SOP-TCS-001
+Revision: A
+Date: January 2026
+
+1.0 PURPOSE AND SCOPE
+
+This Standard Operating Procedure establishes the requirements and procedures for
+operating, monitoring, and maintaining the Ground Support Equipment (GSE) Thermal
+Control System (TCS). This SOP applies to all personnel involved in thermal management
+operations during pre-launch, launch, and post-launch activities.
+
+2.0 SAFETY REQUIREMENTS
+
+2.1 Personal Protective Equipment (PPE)
+
+All personnel operating the Thermal Control System must wear the following safety
+equipment at all times:
+- Safety glasses with side shields
+- Heat-resistant gloves rated to 250 degrees Fahrenheit
+- Steel-toed boots
+- Flame-resistant coveralls (FRC)
+- Hearing protection when coolant pumps are active
+
+2.2 Hazard Awareness
+
+WARNING: The coolant fluid (Fluorinert FC-77) can cause skin irritation on prolonged
+contact. In case of skin exposure, flush affected area with water for 15 minutes and
+report to the Safety Officer.
+
+CAUTION: System pressure must not exceed 150 PSI during normal operations. Overpressure
+events require immediate shutdown per Section 6.0.
+
+3.0 SYSTEM INITIALIZATION
+
+3.1 Pre-Start Checklist
+
+Before initializing the Thermal Control System, verify the following:
+1. All circuit breakers are in the OFF position
+2. Coolant reservoir level is between MIN and MAX marks
+3. All manual valves are in the CLOSED position
+4. Pressure relief valves are functional (check tags for last inspection date)
+5. Emergency stop buttons are accessible and unobstructed
+6. Communication with Mission Control is established
+
+3.2 Startup Procedure
+
+STEP 1: Engage main power breaker on Panel A-7
+STEP 2: Wait 30 seconds for system self-test to complete
+STEP 3: Verify green STATUS indicator on the control panel
+STEP 4: Open primary coolant valve V-101 slowly (quarter-turn increments)
+STEP 5: Start coolant pump P-1 using the PUMP START button
+STEP 6: Monitor flow rate until it stabilizes at 15-20 GPM
+STEP 7: Open secondary coolant valve V-102
+STEP 8: Start coolant pump P-2
+STEP 9: Verify system pressure is between 80-120 PSI
+STEP 10: Set temperature controller to mission-specified setpoint
+
+3.3 Post-Startup Verification
+
+After startup, monitor the following parameters for 15 minutes:
+- Coolant temperature: within +/- 2 degrees of setpoint
+- System pressure: 80-120 PSI
+- Flow rate: 15-20 GPM per loop
+- Vibration levels: below 0.5 in/sec
+Record all readings in the Operations Log (Form TCS-LOG-001).
+
+4.0 NORMAL OPERATIONS
+
+4.1 Monitoring Requirements
+
+During normal operations, operators shall:
+- Check system parameters every 30 minutes
+- Record readings in the Operations Log
+- Report any anomalies to the Shift Supervisor immediately
+- Maintain communication with Mission Control
+
+4.2 Parameter Limits
+
+The following parameters must be maintained during operations:
+
+Temperature:
+- Coolant supply: Setpoint +/- 2 degrees F
+- Coolant return: Setpoint + 10 to + 20 degrees F
+- Ambient air: 65-85 degrees F
+
+Pressure:
+- System pressure: 80-120 PSI
+- Differential pressure: 10-30 PSI
+
+Flow:
+- Primary loop: 15-20 GPM
+- Secondary loop: 15-20 GPM
+
+4.3 Shift Handover
+
+At each shift change, the outgoing operator shall:
+1. Brief the incoming operator on system status
+2. Document any anomalies or pending actions
+3. Transfer the Operations Log
+4. Perform a joint walkdown of the system
+5. Both operators sign the Shift Handover Form (TCS-SHF-001)
+
+5.0 CALIBRATION PROCEDURES
+
+5.1 Temperature Sensor Calibration
+
+Temperature sensors shall be calibrated every 90 days using the following procedure:
+1. Obtain a NIST-traceable reference thermometer
+2. Immerse sensor and reference in a controlled temperature bath
+3. Record readings at 50, 100, 150, and 200 degrees F
+4. Calculate offset at each point
+5. If offset exceeds +/- 0.5 degrees F, replace the sensor
+6. Document results in the Calibration Log (Form TCS-CAL-001)
+
+5.2 Pressure Gauge Calibration
+
+Pressure gauges shall be calibrated every 180 days:
+1. Connect gauge to a dead-weight pressure tester
+2. Apply known pressures at 0, 50, 100, and 150 PSI
+3. Record gauge readings at each point
+4. If error exceeds +/- 2 PSI, replace the gauge
+5. Apply calibration sticker with date and technician initials
+
+5.3 Flow Meter Calibration
+
+Flow meters shall be calibrated annually by the manufacturer or an accredited lab.
+Submit calibration certificates to the Quality Assurance department.
+
+6.0 EMERGENCY PROCEDURES
+
+6.1 Emergency Shutdown
+
+In the event of any of the following conditions, initiate an emergency shutdown:
+- Coolant leak detected
+- System pressure exceeds 150 PSI
+- Coolant temperature exceeds setpoint by more than 20 degrees F
+- Loss of electrical power
+- Fire or smoke detected
+- Seismic event
+- Direction from Mission Control
+
+EMERGENCY SHUTDOWN PROCEDURE:
+1. Press the red EMERGENCY STOP button (any of three locations)
+2. Close manual isolation valves V-101 and V-102
+3. Notify Mission Control: "TCS Emergency Shutdown Initiated"
+4. Notify the Shift Supervisor and Safety Officer
+5. Do NOT attempt to restart without authorization from the Test Director
+6. Document the event in the Incident Report (Form TCS-IR-001)
+
+6.2 Coolant Leak Response
+
+If a coolant leak is detected:
+1. Initiate emergency shutdown per Section 6.1
+2. Evacuate non-essential personnel from the area
+3. Don appropriate PPE (chemical splash goggles, nitrile gloves)
+4. Contain the spill using absorbent materials from the spill kit
+5. Do NOT wash coolant into floor drains
+6. Contact Environmental Health and Safety (EHS) at extension 4-SAFE
+7. Complete Spill Report (Form EHS-SPILL-001) within 24 hours
+
+6.3 Power Failure Recovery
+
+In the event of a power failure:
+1. System will automatically shut down (fail-safe)
+2. Verify all valves have returned to CLOSED position
+3. When power is restored, wait 5 minutes before restarting
+4. Follow startup procedure in Section 3.2
+5. Perform post-startup verification per Section 3.3
+
+7.0 TROUBLESHOOTING
+
+7.1 Low Flow Rate
+
+Symptom: Flow rate below 15 GPM
+Possible causes:
+- Clogged filter (check differential pressure across filter)
+- Air in the system (check for bubbles in sight glass)
+- Pump degradation (check pump RPM and amperage)
+- Partially closed valve (verify all valves are fully open)
+
+Resolution:
+1. Check and replace filter if differential pressure exceeds 15 PSI
+2. Bleed air from system using vent valves at high points
+3. If pump performance is degraded, contact Maintenance
+
+7.2 High System Pressure
+
+Symptom: System pressure above 120 PSI
+Possible causes:
+- Blocked return line
+- Failed pressure regulator
+- Thermal expansion (temperature too high)
+
+Resolution:
+1. Check for obstructions in return piping
+2. Verify pressure regulator is functioning
+3. If pressure exceeds 150 PSI, initiate emergency shutdown per Section 6.1
+
+7.3 Temperature Control Issues
+
+Symptom: Temperature deviation exceeds +/- 2 degrees F
+Possible causes:
+- Failed temperature sensor (compare with redundant sensor)
+- Controller malfunction (check controller display for error codes)
+- Insufficient flow rate (check flow meters)
+- Heat exchanger fouling (check approach temperature)
+
+Resolution:
+1. Compare primary and redundant sensor readings
+2. Reset controller if error code is displayed
+3. Verify flow rate is within normal range
+4. If heat exchanger fouling is suspected, schedule cleaning
+
+8.0 MAINTENANCE
+
+8.1 Preventive Maintenance Schedule
+
+Daily:
+- Visual inspection of all connections and fittings
+- Check coolant level in reservoir
+- Verify all indicators and alarms are functional
+
+Weekly:
+- Inspect coolant for discoloration or contamination
+- Check pump seal for leaks
+- Test emergency stop buttons
+
+Monthly:
+- Replace coolant filters
+- Lubricate valve stems
+- Check electrical connections for tightness
+
+Annually:
+- Full system flush and coolant replacement
+- Pump overhaul or replacement
+- Heat exchanger inspection and cleaning
+- Full electrical system inspection
+
+8.2 Corrective Maintenance
+
+All corrective maintenance actions must be:
+1. Authorized by the Shift Supervisor
+2. Performed by qualified maintenance personnel
+3. Documented in the Maintenance Log (Form TCS-ML-001)
+4. Followed by a functional test before returning to service
+
+9.0 DOCUMENTATION AND RECORDS
+
+All records shall be maintained for a minimum of 5 years and include:
+- Operations Logs (Form TCS-LOG-001)
+- Calibration Records (Form TCS-CAL-001)
+- Maintenance Logs (Form TCS-ML-001)
+- Incident Reports (Form TCS-IR-001)
+- Shift Handover Forms (Form TCS-SHF-001)
+
+END OF DOCUMENT

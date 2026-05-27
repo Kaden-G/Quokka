@@ -4,6 +4,8 @@ SOP Quick-Finder Flask Server
 Provides web UI and API for searching SOPs.
 """
 
+import time
+
 from flask import Flask, request, jsonify, render_template_string, send_from_directory
 from pathlib import Path
 import sys
@@ -60,7 +62,6 @@ def api_search():
         return jsonify({'error': 'Query cannot be empty'}), 400
 
     try:
-        import time
         start_time = time.time()
 
         # Use RAG pipeline if answer generation is requested

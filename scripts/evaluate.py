@@ -219,9 +219,10 @@ class QuokkaEvaluator:
         for name, config in configs.items():
             print(f"  Testing: {name}")
 
-            # Measure latency
+            # Measure latency (clear cache each iteration to get true timings)
             latencies = []
             for _ in range(10):
+                self.searcher.query_cache.clear()
                 start = time.time()
                 search_results = self.searcher.search(test_query, top_k=5, **config)
                 latency = time.time() - start

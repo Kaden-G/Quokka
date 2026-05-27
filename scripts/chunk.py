@@ -24,7 +24,7 @@ class SOPChunker:
         self.overlap = overlap
 
     def detect_section_headers(self, text: str) -> List[tuple]:
-        """Detect section headers in text."""
+        """Detect section headers in text. Returns (char_offset, header_text) tuples."""
         # Common SOP header patterns
         patterns = [
             r'^(\d+\.\d*\.?\d*)\s+([A-Z][^\n]+)',  # 1.2.3 HEADER
@@ -34,12 +34,14 @@ class SOPChunker:
         ]
 
         headers = []
-        for line_num, line in enumerate(text.split('\n')):
+        char_offset = 0
+        for line in text.split('\n'):
             for pattern in patterns:
                 match = re.match(pattern, line.strip())
                 if match:
-                    headers.append((line_num, line.strip()))
+                    headers.append((char_offset, line.strip()))
                     break
+            char_offset += len(line) + 1  # +1 for the newline
         return headers
 
     def chunk_text(self, text: str, metadata: Dict) -> List[Dict]:
@@ -47,9 +49,16 @@ class SOPChunker:
         chunks = []
         words = text.split()
 
-        # Detect sections for better chunking
+        # Detect sections for better chunking (returns char offsets)
         sections = self.detect_section_headers(text)
-        section_map = {h[0]: h[1] for h in sections}
+
+        # Build word-to-character offset map
+        word_char_offsets = []
+        pos = 0
+        for word in words:
+            idx = text.find(word, pos)
+            word_char_offsets.append(idx)
+            pos = idx + len(word)
 
         # Calculate word-based chunk size
         words_per_chunk = self.chunk_size // 5  # Rough estimate
@@ -59,11 +68,15 @@ class SOPChunker:
             chunk_words = words[i:i + words_per_chunk]
             chunk_text = ' '.join(chunk_words)
 
-            # Find closest section header
-            chunk_position = i
+            # Compute actual character offsets
+            char_start = word_char_offsets[i]
+            last_word_idx = min(i + len(chunk_words) - 1, len(words) - 1)
+            char_end = word_char_offsets[last_word_idx] + len(words[last_word_idx])
+
+            # Find closest section header using character offsets
             section_header = "Unknown Section"
-            for sec_num, sec_name in sections:
-                if sec_num <= chunk_position:
+            for sec_offset, sec_name in sections:
+                if sec_offset <= char_start:
                     section_header = sec_name
 
             chunk = {
@@ -72,8 +85,8 @@ class SOPChunker:
                 'page': metadata['page'],
                 'section': section_header,
                 'text': chunk_text,
-                'char_start': i * 5,
-                'char_end': (i + len(chunk_words)) * 5
+                'char_start': char_start,
+                'char_end': char_end
             }
             chunks.append(chunk)
 

@@ -6,6 +6,8 @@ Semantic search over indexed SOP chunks using FAISS.
 
 import json
 import pickle
+import threading
+from collections import OrderedDict
 from pathlib import Path
 from typing import List, Dict, Optional
 import numpy as np
@@ -66,9 +68,10 @@ class SOPSearcher:
         elif use_ollama and not OLLAMA_AVAILABLE:
             print("Warning: Ollama requested but not available. Install with: pip install ollama")
 
-        # Initialize query cache for faster repeated queries
-        self.query_cache = {}
+        # Initialize query cache for faster repeated queries (LRU, thread-safe)
+        self.query_cache = OrderedDict()
         self.cache_size = cache_size
+        self._cache_lock = threading.Lock()
 
         print(f"Loaded index with {len(self.metadata)} chunks")
 
@@ -84,10 +87,12 @@ class SOPSearcher:
         Returns:
             List of matching chunks with metadata
         """
-        # Check cache first
+        # Check cache first (LRU: promote to most-recently-used on hit)
         cache_key = f"{query}|{top_k}|{rerank}"
-        if cache_key in self.query_cache:
-            return self.query_cache[cache_key]
+        with self._cache_lock:
+            if cache_key in self.query_cache:
+                self.query_cache.move_to_end(cache_key)
+                return self.query_cache[cache_key]
 
         # Embed query
         query_embedding = self.model.encode([query], convert_to_numpy=True)
@@ -132,11 +137,11 @@ class SOPSearcher:
         for i, result in enumerate(results):
             result['rank'] = i + 1
 
-        # Add to cache (with simple LRU eviction)
-        if len(self.query_cache) >= self.cache_size:
-            # Remove oldest entry
-            self.query_cache.pop(next(iter(self.query_cache)))
-        self.query_cache[cache_key] = results
+        # Add to cache (LRU eviction: remove least-recently-used)
+        with self._cache_lock:
+            if len(self.query_cache) >= self.cache_size:
+                self.query_cache.popitem(last=False)
+            self.query_cache[cache_key] = results
 
         return results
 

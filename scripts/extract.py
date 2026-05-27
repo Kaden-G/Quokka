@@ -39,23 +39,45 @@ class DocumentExtractor:
             print(f"Error extracting {pdf_path.name}: {e}")
         return chunks
 
-    def extract_docx(self, docx_path: Path) -> List[Dict]:
-        """Extract text from Word documents."""
+    def extract_docx(self, docx_path: Path, chars_per_page: int = 3000) -> List[Dict]:
+        """Extract text from Word documents with virtual page numbering."""
         chunks = []
         try:
             doc = Document(docx_path)
-            full_text = []
-            for para in doc.paragraphs:
-                if para.text.strip():
-                    full_text.append(para.text.strip())
 
-            # Word docs don't have explicit pages, so we chunk by paragraphs
-            chunks.append({
-                'doc_name': docx_path.stem,
-                'page': 1,
-                'text': '\n'.join(full_text),
-                'doc_type': 'docx'
-            })
+            # Accumulate paragraphs into virtual pages (~3000 chars each)
+            current_page_text = []
+            current_char_count = 0
+            page_num = 1
+
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                if not text:
+                    continue
+
+                current_page_text.append(text)
+                current_char_count += len(text) + 1  # +1 for newline
+
+                if current_char_count >= chars_per_page:
+                    chunks.append({
+                        'doc_name': docx_path.stem,
+                        'page': page_num,
+                        'text': '\n'.join(current_page_text),
+                        'doc_type': 'docx'
+                    })
+                    current_page_text = []
+                    current_char_count = 0
+                    page_num += 1
+
+            # Flush remaining text
+            if current_page_text:
+                chunks.append({
+                    'doc_name': docx_path.stem,
+                    'page': page_num,
+                    'text': '\n'.join(current_page_text),
+                    'doc_type': 'docx'
+                })
+
         except Exception as e:
             print(f"Error extracting {docx_path.name}: {e}")
         return chunks
