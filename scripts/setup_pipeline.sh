@@ -48,7 +48,7 @@ echo ""
 
 # Step 3: Embed
 echo "Step 3/3: Building search index..."
-echo "(First run will download embedding model ~80MB)"
+echo "(First run will download embedding model ~130MB)"
 python embed.py
 if [ $? -ne 0 ]; then
     echo "❌ Indexing failed"

@@ -25,7 +25,7 @@ A lightweight, fully-local semantic search tool for finding procedures in Standa
 ### 1. Installation
 
 ```bash
-cd sop-quickfinder
+cd Quokka
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -54,7 +54,7 @@ python scripts/chunk.py
 python scripts/embed.py
 ```
 
-**Note:** The first run of `embed.py` will download the embedding model (~80MB). This only happens once.
+**Note:** The first run downloads the embedding model (~130MB) and re-ranker (~80MB). This only happens once.
 
 ### 4. Start the Search Server
 
@@ -116,25 +116,42 @@ curl http://127.0.0.1:5000/api/stats
 ## Project Structure
 
 ```
-sop-quickfinder/
+Quokka/
 │
 ├── data/
-│   ├── raw/           # Your original SOP PDFs/Docs (add files here)
-│   ├── processed/     # Extracted text (auto-generated)
-│   └── index/         # FAISS index + embeddings (auto-generated)
+│   ├── raw/              # Your original SOP PDFs/Docs (add files here)
+│   ├── processed/        # Extracted text & chunks (auto-generated)
+│   ├── index/            # FAISS index + metadata (auto-generated)
+│   └── metrics/          # SQLite query/feedback logs (auto-generated)
 │
 ├── scripts/
-│   ├── extract.py     # Extract text from PDFs/Docs
-│   ├── chunk.py       # Segment text into chunks
-│   ├── embed.py       # Generate embeddings & build index
-│   └── search.py      # Command-line search interface
+│   ├── extract.py        # Extract text from PDFs/Docs/TXT
+│   ├── chunk.py          # Segment text into semantic chunks
+│   ├── embed.py          # Generate embeddings & build FAISS index
+│   ├── search.py         # Search engine + CLI interface
+│   ├── evaluate.py       # Evaluation & benchmarking framework
+│   ├── metrics.py        # SQLite-backed query/feedback tracking
+│   ├── run_pipeline.py   # One-command pipeline runner (supports --incremental)
+│   └── setup_pipeline.sh # Bash helper for Unix systems
 │
 ├── app/
-│   ├── server.py      # Flask web server
-│   └── ui.html        # Web UI
+│   ├── server.py         # Flask web server + API
+│   └── ui.html           # Web UI (search, RAG toggle, feedback)
 │
-├── requirements.txt   # Python dependencies
-└── README.md          # This file
+├── tests/                # Unit tests (pytest)
+│   ├── test_chunk.py
+│   ├── test_extract.py
+│   ├── test_metrics.py
+│   └── test_incremental.py
+│
+├── LM/                   # Evaluation harness (Phase 0, mock pipeline)
+│
+├── requirements.txt      # Pinned Python dependencies
+├── TECHNICAL.md          # Architecture deep-dive
+├── METRICS.md            # Evaluation & performance guide
+├── GETTING_STARTED.md    # Setup walkthrough
+├── QUICKSTART.md         # 5-minute condensed setup
+└── README.md             # This file
 ```
 
 ---
@@ -258,9 +275,11 @@ pip install -r requirements.txt
 
 ### Re-index After Adding Documents
 ```bash
-python scripts/extract.py
-python scripts/chunk.py
-python scripts/embed.py
+# Full rebuild:
+python scripts/run_pipeline.py
+
+# Or incremental (only processes new files):
+python scripts/run_pipeline.py --incremental
 ```
 
 ---
@@ -297,7 +316,7 @@ python scripts/embed.py
    ```
 
 2. **Transfer to Secure System:**
-   - Copy entire `sop-quickfinder/` directory
+   - Copy entire `Quokka/` directory
    - Copy `deps/` directory with pip packages
    - Copy embedding model from `~/.cache/torch/sentence_transformers/`
 

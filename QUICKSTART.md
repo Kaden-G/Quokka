@@ -4,7 +4,7 @@
 
 ### Step 1: Install Dependencies
 ```bash
-cd ~/Documents/sop-quickfinder
+cd ~/Documents/Quokka
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -24,7 +24,7 @@ python scripts/chunk.py
 python scripts/embed.py
 ```
 
-**Note:** First run downloads the embedding model (~130MB for bge-small) and re-ranker (~80MB). This happens once.
+**Note:** First run downloads the embedding model (~130MB) and re-ranker (~80MB). This happens once.
 
 ### Step 4: Start Searching
 ```bash
@@ -42,7 +42,7 @@ python scripts/search.py
 
 1. **Initial Setup** (one time):
    ```bash
-   cd ~/Documents/sop-quickfinder
+   cd ~/Documents/Quokka
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt

@@ -13,7 +13,7 @@ This guide will get you up and running in just a few minutes!
 ### 1. Install Dependencies
 
 ```bash
-cd sop-quickfinder
+cd Quokka
 
 # Create virtual environment
 python3 -m venv venv
@@ -64,7 +64,7 @@ python scripts/chunk.py     # Step 2: Create chunks
 python scripts/embed.py     # Step 3: Build index
 ```
 
-**Note:** The first run will download a ~80MB AI model. This only happens once.
+**Note:** The first run downloads the embedding model (~130MB) and re-ranker (~80MB). This only happens once.
 
 ### 4. Start Searching!
 
@@ -145,24 +145,29 @@ python scripts/run_pipeline.py
 ## Project Structure
 
 ```
-sop-quickfinder/
+Quokka/
 ├── data/
-│   ├── raw/           ← Put your SOPs here
-│   ├── processed/     ← Auto-generated JSON files
-│   └── index/         ← Auto-generated search index
+│   ├── raw/              ← Put your SOPs here
+│   ├── processed/        ← Auto-generated JSON files
+│   ├── index/            ← Auto-generated search index
+│   └── metrics/          ← Query/feedback logs
 │
 ├── scripts/
-│   ├── extract.py     ← Step 1: Extract text
-│   ├── chunk.py       ← Step 2: Create chunks
-│   ├── embed.py       ← Step 3: Build index
-│   ├── search.py      ← CLI search tool
-│   └── run_pipeline.py ← Run all steps
+│   ├── extract.py        ← Step 1: Extract text
+│   ├── chunk.py          ← Step 2: Create chunks
+│   ├── embed.py          ← Step 3: Build index
+│   ├── search.py         ← Search engine + CLI
+│   ├── evaluate.py       ← Evaluation & benchmarks
+│   ├── metrics.py        ← Query/feedback tracking
+│   └── run_pipeline.py   ← Run all steps (supports --incremental)
 │
 ├── app/
-│   ├── server.py      ← Web server
-│   └── ui.html        ← Web UI
+│   ├── server.py         ← Web server + API
+│   └── ui.html           ← Web UI
 │
-└── requirements.txt   ← Python dependencies
+├── tests/                ← Unit tests (pytest)
+│
+└── requirements.txt      ← Pinned Python dependencies
 ```
 
 ## API Usage
@@ -213,7 +218,7 @@ curl http://127.0.0.1:5000/api/documents
 
 - Check [README.md](README.md) for full documentation
 - Review [QUICKSTART.md](QUICKSTART.md) for condensed instructions
-- All code is heavily commented - read the source!
+- Browse the source code for implementation details
 
 ---
 

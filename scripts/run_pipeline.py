@@ -59,7 +59,7 @@ def run_full_pipeline():
     # Step 3: Embed & Index
     print("STEP 3/3: Building search index...")
     print("-"*80)
-    print("Note: First run will download the embedding model (~80MB)")
+    print("Note: First run will download the embedding model (~130MB) and re-ranker (~80MB)")
     try:
         indexer = EmbeddingIndexer(processed_dir, index_dir)
         indexer.build_index()
