@@ -5,6 +5,7 @@ Semantic search over indexed SOP chunks using FAISS.
 """
 
 import json
+import os
 import threading
 from collections import OrderedDict
 from pathlib import Path
@@ -19,6 +20,12 @@ try:
 except ImportError:
     OLLAMA_AVAILABLE = False
 
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 
 class SOPSearcher:
     """Semantic search over SOP documents."""
@@ -29,7 +36,11 @@ class SOPSearcher:
         cache_size: int = 100,
         use_reranker: bool = True,
         ollama_model: str = 'llama3.1:8b',
-        use_ollama: bool = True
+        use_ollama: bool = True,
+        llm_provider: Optional[str] = None,
+        api_key: Optional[str] = None,
+        api_base: Optional[str] = None,
+        llm_model: Optional[str] = None
     ):
         self.index_dir = Path(index_dir)
 
@@ -67,13 +78,46 @@ class SOPSearcher:
         else:
             self.reranker = None
 
-        # Ollama configuration for answer generation
-        self.use_ollama = use_ollama and OLLAMA_AVAILABLE
+        # LLM configuration for answer generation
+        # Priority: explicit llm_provider param > env vars > ollama fallback
+        self.llm_provider = llm_provider or os.environ.get('QUOKKA_LLM_PROVIDER', '').lower()
+        self._api_key = api_key or os.environ.get('QUOKKA_API_KEY', '')
+        self._api_base = api_base or os.environ.get('QUOKKA_API_BASE', 'https://api.openai.com/v1')
+        self._llm_model = llm_model or os.environ.get('QUOKKA_LLM_MODEL', '')
+        self._openai_client = None
+
+        if self.llm_provider == 'openai' and self._api_key:
+            if not OPENAI_AVAILABLE:
+                print("Warning: openai provider requested but 'openai' package not installed.")
+                print("  Install with: pip install openai")
+                self.llm_provider = ''
+            else:
+                self._openai_client = OpenAI(
+                    api_key=self._api_key,
+                    base_url=self._api_base
+                )
+                model_display = self._llm_model or 'default'
+                print(f"OpenAI-compatible LLM enabled (base: {self._api_base}, model: {model_display})")
+        elif self._api_key and not self.llm_provider:
+            # Auto-detect: API key present but no explicit provider
+            if OPENAI_AVAILABLE:
+                self.llm_provider = 'openai'
+                self._openai_client = OpenAI(
+                    api_key=self._api_key,
+                    base_url=self._api_base
+                )
+                model_display = self._llm_model or 'default'
+                print(f"OpenAI-compatible LLM auto-detected (model: {model_display})")
+
+        # Ollama fallback
+        self.use_ollama = use_ollama and OLLAMA_AVAILABLE and self.llm_provider != 'openai'
         self.ollama_model = ollama_model
         if self.use_ollama:
+            self.llm_provider = self.llm_provider or 'ollama'
             print(f"Ollama integration enabled (model: {ollama_model})")
-        elif use_ollama and not OLLAMA_AVAILABLE:
-            print("Warning: Ollama requested but not available. Install with: pip install ollama")
+        elif not self.llm_provider:
+            print("No LLM provider configured. Answer generation disabled.")
+            print("  Options: set QUOKKA_API_KEY env var, or install ollama")
 
         # Initialize query cache for faster repeated queries (LRU, thread-safe)
         self.query_cache = OrderedDict()
@@ -222,34 +266,14 @@ class SOPSearcher:
             'index_type': self.config['index_type']
         }
 
-    def generate_answer(
-        self,
-        query: str,
-        results: List[Dict],
-        max_context_chunks: int = 5
-    ) -> Optional[str]:
-        """
-        Generate an answer using Ollama based on retrieved chunks.
-
-        Args:
-            query: User question
-            results: Search results (chunks)
-            max_context_chunks: Maximum number of chunks to use as context
-
-        Returns:
-            Generated answer or None if Ollama is not available
-        """
-        if not self.use_ollama:
-            return None
-
-        # Prepare context from top chunks
+    def _build_prompt(self, query: str, results: List[Dict], max_context_chunks: int = 5):
+        """Build system and user prompts for answer generation."""
         context_chunks = results[:max_context_chunks]
         context = "\n\n".join([
             f"[Source: {chunk['doc_name']}, Page {chunk['page']}]\n{chunk['text']}"
             for chunk in context_chunks
         ])
 
-        # Create prompt for Ollama
         system_prompt = """You are a helpful assistant specialized in Standard Operating Procedures (SOPs).
 Your role is to answer questions based ONLY on the provided context from SOP documents.
 
@@ -268,8 +292,33 @@ Question: {query}
 
 Please provide a clear answer based on the context above."""
 
+        return system_prompt, user_prompt
+
+    def _generate_openai(self, system_prompt: str, user_prompt: str) -> Optional[str]:
+        """Generate answer via OpenAI-compatible API."""
         try:
-            # Call Ollama
+            kwargs = {
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt}
+                ],
+                'temperature': 0.3,
+                'max_tokens': 500
+            }
+            if self._llm_model:
+                kwargs['model'] = self._llm_model
+            else:
+                kwargs['model'] = 'gpt-4o-mini'
+
+            response = self._openai_client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error generating answer with OpenAI API: {e}")
+            return None
+
+    def _generate_ollama(self, system_prompt: str, user_prompt: str) -> Optional[str]:
+        """Generate answer via local Ollama."""
+        try:
             response = ollama.chat(
                 model=self.ollama_model,
                 messages=[
@@ -277,16 +326,43 @@ Please provide a clear answer based on the context above."""
                     {'role': 'user', 'content': user_prompt}
                 ],
                 options={
-                    'temperature': 0.3,  # Lower temperature for factual responses
-                    'num_predict': 500   # Max tokens for answer
+                    'temperature': 0.3,
+                    'num_predict': 500
                 }
             )
-
             return response['message']['content']
-
         except Exception as e:
             print(f"Error generating answer with Ollama: {e}")
             return None
+
+    def generate_answer(
+        self,
+        query: str,
+        results: List[Dict],
+        max_context_chunks: int = 5
+    ) -> Optional[str]:
+        """
+        Generate an answer using the configured LLM provider.
+
+        Args:
+            query: User question
+            results: Search results (chunks)
+            max_context_chunks: Maximum number of chunks to use as context
+
+        Returns:
+            Generated answer or None if no LLM provider is available
+        """
+        if not self.llm_provider:
+            return None
+
+        system_prompt, user_prompt = self._build_prompt(query, results, max_context_chunks)
+
+        if self.llm_provider == 'openai' and self._openai_client:
+            return self._generate_openai(system_prompt, user_prompt)
+        elif self.llm_provider == 'ollama' and self.use_ollama:
+            return self._generate_ollama(system_prompt, user_prompt)
+
+        return None
 
     def search_and_answer(
         self,
@@ -308,9 +384,9 @@ Please provide a clear answer based on the context above."""
         # Search for relevant chunks
         results = self.search(query, top_k=top_k, rerank=rerank)
 
-        # Generate answer if Ollama is available
+        # Generate answer if any LLM provider is available
         answer = None
-        if self.use_ollama and len(results) > 0:
+        if self.llm_provider and len(results) > 0:
             answer = self.generate_answer(query, results)
 
         return {
