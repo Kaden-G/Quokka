@@ -23,12 +23,22 @@ class MetricsTracker:
             db_path = metrics_dir / 'quokka_metrics.db'
 
         self.db_path = str(db_path)
+        self._conn = sqlite3.connect(
+            self.db_path,
+            check_same_thread=False  # Safe: SQLite serializes writes internally
+        )
+        self._conn.execute('PRAGMA journal_mode=WAL')  # Concurrent reads
         self._init_db()
 
+    def close(self):
+        """Close the persistent database connection."""
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
     def _init_db(self):
-        """Initialize SQLite database."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        """Initialize SQLite database tables."""
+        cursor = self._conn.cursor()
 
         # Query metrics table
         cursor.execute('''
@@ -72,8 +82,7 @@ class MetricsTracker:
             )
         ''')
 
-        conn.commit()
-        conn.close()
+        self._conn.commit()
 
     def log_query(
         self,
@@ -100,8 +109,7 @@ class MetricsTracker:
         Returns:
             Query ID
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
 
         # Calculate metrics
         avg_similarity = sum(r['similarity'] for r in results) / len(results) if results else 0
@@ -134,8 +142,7 @@ class MetricsTracker:
         ))
 
         query_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        self._conn.commit()
 
         return query_id
 
@@ -155,8 +162,7 @@ class MetricsTracker:
             relevant_results: List of chunk_ids that were relevant
             comments: Optional text feedback
         """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
 
         cursor.execute('''
             INSERT INTO feedback (query_id, timestamp, rating, relevant_results, comments)
@@ -169,13 +175,11 @@ class MetricsTracker:
             comments
         ))
 
-        conn.commit()
-        conn.close()
+        self._conn.commit()
 
     def get_query_stats(self, days: int = 7) -> Dict:
         """Get query statistics for the last N days."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
 
         # Calculate date threshold
         threshold = datetime.now().isoformat()[:10]  # YYYY-MM-DD
@@ -194,7 +198,6 @@ class MetricsTracker:
         ''', (threshold, days))
 
         row = cursor.fetchone()
-        conn.close()
 
         if row:
             total = row[0] or 0
@@ -213,8 +216,7 @@ class MetricsTracker:
 
     def get_top_queries(self, limit: int = 10) -> List[Dict]:
         """Get most frequent queries."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
 
         cursor.execute('''
             SELECT
@@ -237,13 +239,11 @@ class MetricsTracker:
                 'avg_similarity': row[3]
             })
 
-        conn.close()
         return results
 
     def get_feedback_stats(self) -> Dict:
         """Get user feedback statistics."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        cursor = self._conn.cursor()
 
         cursor.execute('''
             SELECT
@@ -255,7 +255,6 @@ class MetricsTracker:
         ''')
 
         row = cursor.fetchone()
-        conn.close()
 
         if row:
             total = row[0] or 0

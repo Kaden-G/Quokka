@@ -113,11 +113,6 @@ class EmbeddingIndexer:
             pickle.dump(metadata, f)
         print(f"Metadata saved: {metadata_file}")
 
-        # Save embeddings for future use
-        embeddings_file = self.index_dir / 'embeddings.npy'
-        np.save(embeddings_file, embeddings)
-        print(f"Embeddings saved: {embeddings_file}")
-
         # Save index config
         config = {
             'num_chunks': len(chunks),

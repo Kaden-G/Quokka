@@ -179,11 +179,23 @@ class SOPSearcher:
 
     def search_by_document(self, query: str, doc_name: str, top_k: int = 5) -> List[Dict]:
         """Search within a specific document."""
-        # Get all results
-        results = self.search(query, top_k=50)
+        # Calculate how many chunks belong to this doc to set a smart retrieval budget
+        total_chunks = len(self.metadata)
+        doc_chunks = sum(1 for c in self.metadata if c['doc_name'] == doc_name)
+        if doc_chunks == 0:
+            return []
 
-        # Filter by document
+        # Retrieve enough from FAISS to likely include top_k from target doc
+        # Ratio-based: if doc is 10% of corpus, retrieve 10x to compensate
+        ratio = doc_chunks / total_chunks if total_chunks > 0 else 1
+        retrieve_k = min(total_chunks, max(top_k * 3, int(top_k / ratio)))
+
+        results = self.search(query, top_k=retrieve_k)
+
+        # Filter by document and re-rank
         filtered = [r for r in results if r['doc_name'] == doc_name]
+        for i, result in enumerate(filtered):
+            result['rank'] = i + 1
 
         return filtered[:top_k]
 
