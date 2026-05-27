@@ -1,8 +1,8 @@
-# GSE SOP Quick-Finder
+# Quokka
 
-**100% Offline, Secure SOP Retrieval System for Ground Systems Engineers**
+**100% Offline, Secure SOP Search for Ground Systems Engineers**
 
-A lightweight, fully-local semantic search tool for finding procedures in Standard Operating Procedures (SOPs) using plain-English queries. Built for classified/isolated environments with no internet connectivity.
+A lightweight, fully-local semantic search tool for finding procedures in Standard Operating Procedures (SOPs) using plain-English queries. Load your SOPs into the pouch and search with natural language. Built for classified/isolated environments with no internet connectivity.
 
 ---
 
@@ -11,7 +11,7 @@ A lightweight, fully-local semantic search tool for finding procedures in Standa
 ✅ **Fully Offline** - No cloud services, no external APIs
 ✅ **Advanced Semantic Search** - Natural language queries with state-of-the-art retrieval (BAAI/bge-small-en-v1.5)
 ✅ **AI-Powered Re-ranking** - Cross-encoder re-ranking for 25-30% better top results
-✅ **Intelligent Answer Generation** - Optional Ollama integration for RAG-based answers (100% local)
+✅ **Intelligent Answer Generation** - Ollama (local) or OpenAI-compatible API for RAG-based answers
 ✅ **Multi-Format Support** - PDF and Word documents
 ✅ **Query Caching** - Instant results for repeated queries
 ✅ **Fast & Lightweight** - Optimized with cosine similarity and efficient indexing
@@ -31,9 +31,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Add Your SOP Documents
+### 2. Load Your SOPs into the Pouch
 
-Place your PDF or Word SOP files in the `data/raw/` directory:
+Place your PDF or Word SOP files in the `data/raw/` directory (the "pouch"):
 
 ```bash
 cp /path/to/your/SOPs/*.pdf data/raw/
@@ -119,7 +119,7 @@ curl http://127.0.0.1:5000/api/stats
 Quokka/
 │
 ├── data/
-│   ├── raw/              # Your original SOP PDFs/Docs (add files here)
+│   ├── raw/              # Your SOP pouch (add files here)
 │   ├── processed/        # Extracted text & chunks (auto-generated)
 │   ├── index/            # FAISS index + metadata (auto-generated)
 │   └── metrics/          # SQLite query/feedback logs (auto-generated)
@@ -362,4 +362,4 @@ This tool is designed to be simple and self-contained. For issues:
 
 ---
 
-**Built for GSEs who need fast, accurate SOP access without compromising security.**
+**Built for GSEs who need fast, accurate SOP access without compromising security.** 🦘

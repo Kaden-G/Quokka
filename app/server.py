@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SOP Quick-Finder Flask Server
+Quokka Flask Server
 Provides web UI and API for searching SOPs.
 """
 
@@ -195,7 +195,7 @@ def main():
     init_searcher()
 
     print("\n" + "="*60)
-    print("GSE SOP Quick-Finder Server")
+    print("Quokka — SOP Search")
     print("="*60)
     print(f"Access the UI at: http://127.0.0.1:5000")
     print(f"API endpoint: http://127.0.0.1:5000/api/search")

@@ -3,339 +3,666 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GSE SOP Quick-Finder</title>
+    <title>Quokka — SOP Search</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #f5f2ed;
+            --surface: #ffffff;
+            --surface-alt: #faf8f5;
+            --border: #e8e2d9;
+            --border-focus: #b5855a;
+            --primary: #b5855a;
+            --primary-hover: #9a6d44;
+            --primary-light: #f3ece3;
+            --accent: #6b9e6b;
+            --accent-light: #e9f3e9;
+            --text: #2d2a26;
+            --text-muted: #7a746b;
+            --text-light: #a39e95;
+            --danger: #c0503e;
+            --danger-light: #fceae7;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+            --shadow: 0 4px 20px rgba(0,0,0,.06);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,.08);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        /* ── NAV BAR ─────────────────────────────────── */
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
         }
 
-        .header {
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .nav-brand svg { width: 32px; height: 32px; }
+
+        .nav-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: .8rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .nav-pill.stats {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .nav-pill.settings-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .nav-pill.settings-btn:hover { background: var(--surface-alt); }
+
+        .nav-pill svg { width: 16px; height: 16px; }
+
+        /* ── MAIN LAYOUT ─────────────────────────────── */
+        .main { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+
+        /* ── HERO / SEARCH ───────────────────────────── */
+        .hero {
             text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
         }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        .hero h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -.02em;
         }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+        .hero p {
+            color: var(--text-muted);
+            font-size: .95rem;
         }
 
-        .search-box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
+        .search-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
         }
 
-        .search-form {
+        .search-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
 
-        #searchInput {
+        .search-input {
             flex: 1;
-            padding: 15px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 16px;
+            font-size: .95rem;
+            font-family: var(--font);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
             outline: none;
-            transition: border-color 0.3s;
+            transition: border .15s, box-shadow .15s;
+            background: var(--surface-alt);
         }
 
-        #searchInput:focus {
-            border-color: #2a5298;
+        .search-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(181,133,90,.12);
+            background: var(--surface);
         }
 
-        #searchButton {
-            padding: 15px 40px;
-            background: #2a5298;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+        .search-input::placeholder { color: var(--text-light); }
 
-        #searchButton:hover {
-            background: #1e3c72;
-        }
-
-        #searchButton:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .filters {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .filters label {
+        .btn {
+            padding: 12px 28px;
+            font-size: .95rem;
             font-weight: 600;
-            color: #333;
+            font-family: var(--font);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .filters select {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+        .filter-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .filter-group select {
+            padding: 6px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            font-size: .82rem;
+            font-family: var(--font);
             outline: none;
+            background: var(--surface-alt);
         }
 
-        .stats {
-            background: rgba(255,255,255,0.1);
-            padding: 15px;
-            border-radius: 5px;
-            color: white;
-            margin-bottom: 20px;
-            text-align: center;
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
         }
 
-        .stats span {
-            font-weight: bold;
-            color: #ffd700;
+        .toggle {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 20px;
+            outline: none;
+            cursor: pointer;
+            transition: background .2s;
         }
 
-        .results {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            min-height: 300px;
+        .toggle:checked { background: var(--accent); }
+
+        .toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform .2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,.15);
         }
 
-        .results h2 {
-            color: #2a5298;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #2a5298;
-        }
+        .toggle:checked::before { transform: translateX(16px); }
 
-        .result-item {
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: #f9f9f9;
-            transition: all 0.3s;
-        }
-
-        .result-item:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-        .result-header {
+        /* ── RESULTS ─────────────────────────────────── */
+        .results-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .result-title {
-            font-weight: bold;
-            color: #1e3c72;
-            font-size: 1.1em;
+        .results-header h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
         }
 
-        .result-badge {
-            background: #2a5298;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
-
-        .result-meta {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        .result-section {
-            background: #fff;
-            padding: 8px 12px;
-            border-left: 3px solid #2a5298;
-            margin-bottom: 10px;
-            font-style: italic;
-            color: #555;
-        }
-
-        .result-text {
-            line-height: 1.6;
-            color: #333;
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-
-        .no-results svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.3;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2a5298;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 4px solid #c62828;
-            margin-bottom: 20px;
+        .results-count {
+            font-size: .82rem;
+            color: var(--text-muted);
         }
 
         .answer-box {
-            background: #e8f5e9;
-            border: 1px solid #a5d6a7;
-            border-left: 4px solid #43a047;
-            border-radius: 8px;
+            background: var(--accent-light);
+            border: 1px solid #b8d8b8;
+            border-radius: var(--radius);
             padding: 20px;
             margin-bottom: 20px;
-            line-height: 1.7;
         }
 
-        .answer-box h3 {
-            color: #2e7d32;
+        .answer-box-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: #3d7a3d;
             margin-bottom: 10px;
+            font-size: .9rem;
         }
 
-        .answer-box .answer-text {
-            color: #333;
+        .answer-box-title svg { width: 18px; height: 18px; }
+
+        .answer-text {
+            font-size: .92rem;
+            line-height: 1.7;
+            color: var(--text);
             white-space: pre-wrap;
         }
 
-        .filters input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .feedback-bar {
+        .feedback-row {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 15px 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
+            padding: 12px 16px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             margin-bottom: 20px;
         }
 
-        .feedback-bar span {
-            color: #555;
+        .feedback-row span {
+            font-size: .82rem;
             font-weight: 600;
+            color: var(--text-muted);
         }
 
-        .star-rating {
-            display: flex;
-            gap: 4px;
-        }
+        .stars { display: flex; gap: 2px; }
 
-        .star-rating button {
+        .stars button {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 1.3rem;
             cursor: pointer;
-            color: #ccc;
-            transition: color 0.2s;
+            color: var(--border);
+            transition: color .15s;
             padding: 0 2px;
+            line-height: 1;
         }
 
-        .star-rating button:hover,
-        .star-rating button.active {
-            color: #ffc107;
-        }
+        .stars button:hover,
+        .stars button.on { color: #e8a735; }
 
         .feedback-msg {
-            font-size: 0.9em;
-            color: #43a047;
+            font-size: .8rem;
+            color: var(--accent);
             font-weight: 600;
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-bottom: 12px;
+            transition: box-shadow .15s, border-color .15s;
+        }
+
+        .result-card:hover {
+            box-shadow: var(--shadow);
+            border-color: #d5cfc6;
+        }
+
+        .result-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .result-doc {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--text);
+        }
+
+        .result-score {
+            font-size: .75rem;
+            font-weight: 700;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 3px 10px;
+            border-radius: 99px;
+        }
+
+        .result-meta {
+            font-size: .78rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .result-section-tag {
+            display: inline-block;
+            font-size: .75rem;
+            font-weight: 600;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 2px 10px;
+            border-radius: 99px;
+            margin-bottom: 10px;
+        }
+
+        .result-text {
+            font-size: .88rem;
+            line-height: 1.65;
+            color: #4a4640;
+        }
+
+        .result-text mark {
+            background: #fde9a9;
+            color: inherit;
+            padding: 1px 2px;
+            border-radius: 3px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: .35;
+        }
+
+        .empty-state p { font-size: .95rem; }
+        .empty-state .sub { font-size: .82rem; margin-top: 6px; }
+
+        .loading-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-box {
+            background: var(--danger-light);
+            color: var(--danger);
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--danger);
+            margin-bottom: 16px;
+            font-size: .9rem;
+        }
+
+        /* ── SETTINGS DRAWER ─────────────────────────── */
+        .drawer-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.25);
+            z-index: 200;
+            animation: fadeIn .15s;
+        }
+
+        .drawer-overlay.open { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 400px;
+            max-width: 90vw;
+            height: 100vh;
+            background: var(--surface);
+            z-index: 201;
+            box-shadow: -8px 0 40px rgba(0,0,0,.1);
+            transition: right .25s cubic-bezier(.4,0,.2,1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawer.open { right: 0; }
+
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .drawer-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 6px;
+            transition: background .15s;
+        }
+
+        .drawer-close:hover { background: var(--surface-alt); }
+        .drawer-close svg { width: 20px; height: 20px; }
+
+        .drawer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-section {
+            margin-bottom: 28px;
+        }
+
+        .settings-section h4 {
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-row:last-child { border-bottom: none; }
+
+        .setting-label {
+            font-size: .88rem;
+            font-weight: 600;
+        }
+
+        .setting-desc {
+            font-size: .78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: .88rem;
+            font-family: var(--mono);
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            background: var(--surface-alt);
+            margin-top: 6px;
+            transition: border .15s;
+        }
+
+        .setting-input:focus {
+            border-color: var(--border-focus);
+        }
+
+        .setting-input-group { margin-bottom: 14px; }
+
+        .setting-input-group label {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .setting-input-group .hint {
+            font-size: .75rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .save-bar {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-save {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* ── RESPONSIVE ──────────────────────────────── */
+        @media (max-width: 640px) {
+            .search-row { flex-direction: column; }
+            .filter-row { flex-direction: column; align-items: flex-start; }
+            .navbar { padding: 0 14px; }
+            .main { padding: 20px 14px 60px; }
+            .hero h1 { font-size: 1.3rem; }
+            .drawer { width: 100vw; max-width: 100vw; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 GSE SOP Quick-Finder</h1>
-            <p>Secure, Offline SOP Retrieval System</p>
-        </div>
 
-        <div class="stats" id="statsBar">
-            Loading statistics...
-        </div>
+<!-- ── NAVBAR ─────────────────────────────────────────── -->
+<nav class="navbar">
+    <a class="nav-brand" href="/">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="30" fill="#b5855a" opacity=".12"/>
+            <ellipse cx="32" cy="38" rx="14" ry="16" fill="#b5855a"/>
+            <ellipse cx="32" cy="26" rx="11" ry="10" fill="#c9a07a"/>
+            <circle cx="28" cy="24" r="2" fill="#2d2a26"/>
+            <circle cx="36" cy="24" r="2" fill="#2d2a26"/>
+            <ellipse cx="32" cy="28" rx="2.5" ry="1.5" fill="#8b5e3c"/>
+            <ellipse cx="32" cy="29.5" rx="4" ry="2" fill="#c9a07a" opacity=".5"/>
+            <ellipse cx="22" cy="18" rx="4" ry="6" fill="#c9a07a" transform="rotate(-15 22 18)"/>
+            <ellipse cx="42" cy="18" rx="4" ry="6" fill="#c9a07a" transform="rotate(15 42 18)"/>
+            <ellipse cx="23" cy="16.5" rx="2.5" ry="4" fill="#e8bfa0" transform="rotate(-15 23 16.5)"/>
+            <ellipse cx="41" cy="16.5" rx="2.5" ry="4" fill="#e8bfa0" transform="rotate(15 41 16.5)"/>
+        </svg>
+        <span>Quokka</span>
+    </a>
+    <div class="nav-actions">
+        <div class="nav-pill stats" id="navStats">Loading...</div>
+        <button class="nav-pill settings-btn" onclick="toggleSettings()" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+        </button>
+    </div>
+</nav>
 
-        <div class="search-box">
-            <form class="search-form" id="searchForm">
-                <input
-                    type="text"
-                    id="searchInput"
-                    placeholder="Enter your question (e.g., 'How do I initialize the cooling system?')"
-                    autocomplete="off"
-                    required
-                >
-                <button type="submit" id="searchButton">Search</button>
-            </form>
+<!-- ── MAIN CONTENT ───────────────────────────────────── -->
+<div class="main">
+    <div class="hero">
+        <h1>What can Quokka find for you?</h1>
+        <p>Search your SOP pouch with plain-English questions</p>
+    </div>
 
-            <div class="filters">
-                <label for="documentFilter">Filter by document:</label>
+    <div class="search-card">
+        <form class="search-row" id="searchForm">
+            <input
+                class="search-input"
+                type="text"
+                id="searchInput"
+                placeholder="e.g. &quot;How do I initialize the cooling system?&quot;"
+                autocomplete="off"
+                required
+            >
+            <button type="submit" class="btn btn-primary" id="searchButton">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Hop
+            </button>
+        </form>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="documentFilter">Pouch:</label>
                 <select id="documentFilter">
                     <option value="">All Documents</option>
                 </select>
+            </div>
 
+            <div class="filter-group">
                 <label for="resultCount">Results:</label>
                 <select id="resultCount">
                     <option value="5" selected>5</option>
@@ -343,228 +670,316 @@
                     <option value="15">15</option>
                     <option value="20">20</option>
                 </select>
-
-                <label for="generateAnswer">
-                    <input type="checkbox" id="generateAnswer">
-                    Generate Answer (RAG)
-                </label>
             </div>
-        </div>
 
-        <div class="results">
-            <div id="answerContainer"></div>
-            <div id="feedbackContainer"></div>
-            <h2>Search Results</h2>
-            <div id="resultsContainer">
-                <div class="no-results">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
-                    <p>Enter a query to search your SOP documents</p>
-                </div>
-            </div>
+            <label class="toggle-label" for="generateAnswer">
+                <input class="toggle" type="checkbox" id="generateAnswer">
+                AI Answer
+            </label>
         </div>
     </div>
 
-    <script>
-        // Load statistics on page load
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/stats');
-                const data = await response.json();
+    <!-- results area -->
+    <div id="answerContainer"></div>
+    <div id="feedbackContainer"></div>
 
-                document.getElementById('statsBar').innerHTML = `
-                    <span>${data.total_documents}</span> Documents Indexed |
-                    <span>${data.total_chunks}</span> Searchable Chunks |
-                    <span>100%</span> Offline
-                `;
+    <div class="results-header" id="resultsHeader" style="display:none;">
+        <h2>Search Results</h2>
+        <span class="results-count" id="resultsCount"></span>
+    </div>
 
-                // Populate document filter
-                const select = document.getElementById('documentFilter');
-                data.documents.forEach(doc => {
-                    const option = document.createElement('option');
-                    option.value = doc;
-                    option.textContent = doc;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                document.getElementById('statsBar').innerHTML =
-                    '<span style="color: #ffcdd2;">Error loading statistics</span>';
-            }
+    <div id="resultsContainer">
+        <div class="empty-state">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="30" fill="#b5855a" opacity=".10"/>
+                <ellipse cx="32" cy="38" rx="14" ry="16" fill="#b5855a" opacity=".25"/>
+                <ellipse cx="32" cy="26" rx="11" ry="10" fill="#c9a07a" opacity=".3"/>
+                <circle cx="28" cy="24" r="2" fill="#2d2a26" opacity=".2"/>
+                <circle cx="36" cy="24" r="2" fill="#2d2a26" opacity=".2"/>
+            </svg>
+            <p>Ask Quokka anything about your SOPs</p>
+            <p class="sub">Your documents are loaded in the pouch and ready to search</p>
+        </div>
+    </div>
+</div>
+
+<!-- ── SETTINGS DRAWER ────────────────────────────────── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleSettings()"></div>
+<div class="drawer" id="settingsDrawer">
+    <div class="drawer-header">
+        <h3>Settings</h3>
+        <button class="drawer-close" onclick="toggleSettings()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div class="drawer-body">
+
+        <div class="settings-section">
+            <h4>Search</h4>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Re-ranking</div>
+                    <div class="setting-desc">Cross-encoder re-ranks for better top results</div>
+                </div>
+                <input class="toggle" type="checkbox" id="settingRerank" checked>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>AI Answer Generation</h4>
+            <div class="setting-input-group">
+                <label>LLM Provider</label>
+                <select class="setting-input" id="settingProvider" style="font-family:var(--font);" onchange="onProviderChange()">
+                    <option value="ollama">Ollama (local)</option>
+                    <option value="openai">OpenAI-compatible API</option>
+                </select>
+            </div>
+
+            <div id="apiSettings" style="display:none;">
+                <div class="setting-input-group">
+                    <label>API Key</label>
+                    <input class="setting-input" type="password" id="settingApiKey" placeholder="sk-...">
+                    <div class="hint">Stored in browser only — never sent to our server</div>
+                </div>
+
+                <div class="setting-input-group">
+                    <label>API Base URL</label>
+                    <input class="setting-input" type="url" id="settingApiBase" placeholder="https://api.openai.com/v1">
+                    <div class="hint">Change for Azure, vLLM, LiteLLM, or other providers</div>
+                </div>
+
+                <div class="setting-input-group">
+                    <label>Model</label>
+                    <input class="setting-input" type="text" id="settingModel" placeholder="gpt-4o-mini">
+                </div>
+            </div>
+
+            <div class="setting-input-group">
+                <label>Ollama Model</label>
+                <input class="setting-input" type="text" id="settingOllamaModel" value="llama3.1:8b" placeholder="llama3.1:8b">
+                <div class="hint">Used when Ollama is the selected provider</div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>About Quokka</h4>
+            <p style="font-size:.82rem; color:var(--text-muted); line-height:1.6;">
+                Quokka is a 100% offline semantic search tool for Standard Operating Procedures.
+                All processing happens locally — no data ever leaves your machine.
+            </p>
+        </div>
+    </div>
+    <div class="save-bar">
+        <button class="btn btn-primary btn-save" onclick="saveSettings()">Save Settings</button>
+    </div>
+</div>
+
+<script>
+    // ── STATE ────────────────────────────────────────
+    let currentQueryId = null;
+
+    // ── SETTINGS PERSISTENCE (localStorage) ─────────
+    function loadSettings() {
+        const s = JSON.parse(localStorage.getItem('quokka_settings') || '{}');
+        if (s.provider) document.getElementById('settingProvider').value = s.provider;
+        if (s.apiKey) document.getElementById('settingApiKey').value = s.apiKey;
+        if (s.apiBase) document.getElementById('settingApiBase').value = s.apiBase;
+        if (s.model) document.getElementById('settingModel').value = s.model;
+        if (s.ollamaModel) document.getElementById('settingOllamaModel').value = s.ollamaModel;
+        if (s.rerank !== undefined) document.getElementById('settingRerank').checked = s.rerank;
+        onProviderChange();
+    }
+
+    function saveSettings() {
+        const s = {
+            provider: document.getElementById('settingProvider').value,
+            apiKey: document.getElementById('settingApiKey').value,
+            apiBase: document.getElementById('settingApiBase').value,
+            model: document.getElementById('settingModel').value,
+            ollamaModel: document.getElementById('settingOllamaModel').value,
+            rerank: document.getElementById('settingRerank').checked
+        };
+        localStorage.setItem('quokka_settings', JSON.stringify(s));
+        toggleSettings();
+    }
+
+    function getSettings() {
+        return JSON.parse(localStorage.getItem('quokka_settings') || '{}');
+    }
+
+    function onProviderChange() {
+        const isApi = document.getElementById('settingProvider').value === 'openai';
+        document.getElementById('apiSettings').style.display = isApi ? 'block' : 'none';
+    }
+
+    // ── SETTINGS DRAWER ─────────────────────────────
+    function toggleSettings() {
+        document.getElementById('drawerOverlay').classList.toggle('open');
+        document.getElementById('settingsDrawer').classList.toggle('open');
+    }
+
+    // ── STATS ───────────────────────────────────────
+    async function loadStats() {
+        try {
+            const r = await fetch('/api/stats');
+            const d = await r.json();
+            document.getElementById('navStats').innerHTML =
+                `<strong>${d.total_documents}</strong>&nbsp;docs&nbsp;&nbsp;|&nbsp;&nbsp;<strong>${d.total_chunks}</strong>&nbsp;chunks`;
+
+            const select = document.getElementById('documentFilter');
+            d.documents.forEach(doc => {
+                const o = document.createElement('option');
+                o.value = doc;
+                o.textContent = doc;
+                select.appendChild(o);
+            });
+        } catch {
+            document.getElementById('navStats').textContent = 'Offline';
         }
+    }
 
-        // Current query ID for feedback
-        let currentQueryId = null;
+    // ── SEARCH ──────────────────────────────────────
+    async function performSearch(event) {
+        event.preventDefault();
 
-        // Search function
-        async function performSearch(event) {
-            event.preventDefault();
+        const query = document.getElementById('searchInput').value.trim();
+        const topK = parseInt(document.getElementById('resultCount').value);
+        const docFilter = document.getElementById('documentFilter').value;
+        const generateAnswer = document.getElementById('generateAnswer').checked;
+        const container = document.getElementById('resultsContainer');
+        const answerBox = document.getElementById('answerContainer');
+        const feedbackBox = document.getElementById('feedbackContainer');
+        const header = document.getElementById('resultsHeader');
+        const btn = document.getElementById('searchButton');
 
-            const query = document.getElementById('searchInput').value.trim();
-            const topK = parseInt(document.getElementById('resultCount').value);
-            const docFilter = document.getElementById('documentFilter').value;
-            const generateAnswer = document.getElementById('generateAnswer').checked;
-            const resultsContainer = document.getElementById('resultsContainer');
-            const answerContainer = document.getElementById('answerContainer');
-            const feedbackContainer = document.getElementById('feedbackContainer');
-            const searchButton = document.getElementById('searchButton');
+        if (!query) return;
 
-            if (!query) return;
+        btn.disabled = true;
+        answerBox.innerHTML = '';
+        feedbackBox.innerHTML = '';
+        header.style.display = 'none';
+        currentQueryId = null;
 
-            // Show loading
-            searchButton.disabled = true;
-            answerContainer.innerHTML = '';
-            feedbackContainer.innerHTML = '';
-            currentQueryId = null;
-            const loadingMsg = generateAnswer ? 'Searching and generating answer...' : 'Searching...';
-            resultsContainer.innerHTML = `<div class="loading"><div class="spinner"></div><p>${loadingMsg}</p></div>`;
+        const msg = generateAnswer ? 'Searching and generating answer...' : 'Hopping through your SOPs...';
+        container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>${msg}</p></div>`;
 
-            try {
-                const response = await fetch('/api/search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: query,
-                        top_k: topK,
-                        document: docFilter || null,
-                        generate_answer: generateAnswer
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    resultsContainer.innerHTML = `<div class="error">${data.error}</div>`;
-                    return;
-                }
-
-                // Store query ID for feedback
-                if (data.query_id) {
-                    currentQueryId = data.query_id;
-                }
-
-                if (data.results.length === 0) {
-                    resultsContainer.innerHTML = `
-                        <div class="no-results">
-                            <p>No results found for "${query}"</p>
-                            <p style="font-size: 0.9em; margin-top: 10px;">Try rephrasing your question or using different keywords</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Display AI-generated answer if available
-                if (data.answer) {
-                    answerContainer.innerHTML = `
-                        <div class="answer-box">
-                            <h3>AI-Generated Answer</h3>
-                            <div class="answer-text">${escapeHtml(data.answer)}</div>
-                        </div>
-                    `;
-                }
-
-                // Display feedback bar
-                if (currentQueryId) {
-                    feedbackContainer.innerHTML = `
-                        <div class="feedback-bar">
-                            <span>Rate these results:</span>
-                            <div class="star-rating" id="starRating">
-                                <button onclick="submitRating(1)" data-rating="1">&#9733;</button>
-                                <button onclick="submitRating(2)" data-rating="2">&#9733;</button>
-                                <button onclick="submitRating(3)" data-rating="3">&#9733;</button>
-                                <button onclick="submitRating(4)" data-rating="4">&#9733;</button>
-                                <button onclick="submitRating(5)" data-rating="5">&#9733;</button>
-                            </div>
-                            <span class="feedback-msg" id="feedbackMsg"></span>
-                        </div>
-                    `;
-                }
-
-                // Display results
-                let html = '';
-                data.results.forEach(result => {
-                    const similarity = (result.similarity * 100).toFixed(1);
-                    html += `
-                        <div class="result-item">
-                            <div class="result-header">
-                                <div class="result-title">${escapeHtml(result.doc_name)}</div>
-                                <div class="result-badge">${similarity}% Match</div>
-                            </div>
-                            <div class="result-meta">
-                                Page ${result.page} | Result #${result.rank}
-                            </div>
-                            <div class="result-section">
-                                ${escapeHtml(result.section)}
-                            </div>
-                            <div class="result-text">
-                                ${highlightText(result.text, query)}
-                            </div>
-                        </div>
-                    `;
-                });
-
-                resultsContainer.innerHTML = html;
-
-            } catch (error) {
-                resultsContainer.innerHTML = `<div class="error">Search failed: ${escapeHtml(error.message)}</div>`;
-            } finally {
-                searchButton.disabled = false;
-            }
-        }
-
-        // Submit star rating feedback
-        async function submitRating(rating) {
-            if (!currentQueryId) return;
-
-            // Highlight selected stars
-            const buttons = document.querySelectorAll('#starRating button');
-            buttons.forEach(btn => {
-                btn.classList.toggle('active', parseInt(btn.dataset.rating) <= rating);
+        try {
+            const resp = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query,
+                    top_k: topK,
+                    document: docFilter || null,
+                    generate_answer: generateAnswer
+                })
             });
 
-            try {
-                await fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query_id: currentQueryId,
-                        rating: rating
-                    })
-                });
-                document.getElementById('feedbackMsg').textContent = 'Thanks for your feedback!';
-            } catch (error) {
-                document.getElementById('feedbackMsg').textContent = 'Could not save feedback';
+            const data = await resp.json();
+
+            if (data.error) {
+                container.innerHTML = `<div class="error-box">${escapeHtml(data.error)}</div>`;
+                return;
             }
+
+            if (data.query_id) currentQueryId = data.query_id;
+
+            if (data.results.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No results found for "${escapeHtml(query)}"</p>
+                        <p class="sub">Try rephrasing your question or broadening your search</p>
+                    </div>`;
+                return;
+            }
+
+            // Answer
+            if (data.answer) {
+                answerBox.innerHTML = `
+                    <div class="answer-box">
+                        <div class="answer-box-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                            Quokka's Answer
+                        </div>
+                        <div class="answer-text">${escapeHtml(data.answer)}</div>
+                    </div>`;
+            }
+
+            // Feedback
+            if (currentQueryId) {
+                feedbackBox.innerHTML = `
+                    <div class="feedback-row">
+                        <span>Rate these results:</span>
+                        <div class="stars" id="starRating">
+                            ${[1,2,3,4,5].map(n => `<button onclick="submitRating(${n})" data-r="${n}">&#9733;</button>`).join('')}
+                        </div>
+                        <span class="feedback-msg" id="feedbackMsg"></span>
+                    </div>`;
+            }
+
+            // Results
+            header.style.display = 'flex';
+            document.getElementById('resultsCount').textContent = `${data.results.length} result${data.results.length !== 1 ? 's' : ''}`;
+
+            container.innerHTML = data.results.map(r => {
+                const pct = (r.similarity * 100).toFixed(1);
+                return `
+                    <div class="result-card">
+                        <div class="result-card-head">
+                            <div class="result-doc">${escapeHtml(r.doc_name)}</div>
+                            <div class="result-score">${pct}%</div>
+                        </div>
+                        <div class="result-meta">Page ${r.page} &middot; Result #${r.rank}</div>
+                        <div class="result-section-tag">${escapeHtml(r.section)}</div>
+                        <div class="result-text">${highlightText(r.text, query)}</div>
+                    </div>`;
+            }).join('');
+
+        } catch (err) {
+            container.innerHTML = `<div class="error-box">Search failed: ${escapeHtml(err.message)}</div>`;
+        } finally {
+            btn.disabled = false;
         }
+    }
 
-        // Escape HTML to prevent injection
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Simple text highlighting (escapes HTML first for safety)
-        function highlightText(text, query) {
-            let escaped = escapeHtml(text);
-            const words = query.toLowerCase().split(' ').filter(w => w.length > 3);
-
-            words.forEach(word => {
-                const safeWord = escapeHtml(word).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${safeWord})`, 'gi');
-                escaped = escaped.replace(regex, '<mark style="background: #fff59d;">$1</mark>');
+    // ── FEEDBACK ────────────────────────────────────
+    async function submitRating(rating) {
+        if (!currentQueryId) return;
+        document.querySelectorAll('#starRating button').forEach(b => {
+            b.classList.toggle('on', parseInt(b.dataset.r) <= rating);
+        });
+        try {
+            await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query_id: currentQueryId, rating })
             });
-
-            return escaped;
+            document.getElementById('feedbackMsg').textContent = 'Thanks for the feedback!';
+        } catch {
+            document.getElementById('feedbackMsg').textContent = 'Could not save';
         }
+    }
 
-        // Event listeners
-        document.getElementById('searchForm').addEventListener('submit', performSearch);
+    // ── UTILITIES ───────────────────────────────────
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
 
-        // Load stats on page load
-        loadStats();
-    </script>
+    function highlightText(text, query) {
+        let escaped = escapeHtml(text);
+        query.toLowerCase().split(' ').filter(w => w.length > 3).forEach(word => {
+            const safe = escapeHtml(word).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            escaped = escaped.replace(new RegExp(`(${safe})`, 'gi'), '<mark>$1</mark>');
+        });
+        return escaped;
+    }
+
+    // ── INIT ────────────────────────────────────────
+    document.getElementById('searchForm').addEventListener('submit', performSearch);
+    loadStats();
+    loadSettings();
+</script>
 </body>
 </html>
