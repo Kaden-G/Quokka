@@ -134,51 +134,45 @@ class DocumentExtractor:
     def extract_all(self) -> Dict[str, List[Dict]]:
         """Process all documents in raw directory."""
         all_extracts = {}
+        failed = []
 
-        # Process PDFs
-        for pdf_file in self.raw_dir.glob('*.pdf'):
-            print(f"Extracting: {pdf_file.name}")
-            extracts = self.extract_pdf(pdf_file)
-            all_extracts[pdf_file.stem] = extracts
+        all_files = self.get_raw_files()
+        total = len(all_files)
+        for i, fpath in enumerate(all_files, 1):
+            print(f"Extracting ({i}/{total}): {fpath.name}")
+            try:
+                if fpath.suffix.lower() == '.pdf':
+                    extracts = self.extract_pdf(fpath)
+                elif fpath.suffix.lower() == '.docx':
+                    extracts = self.extract_docx(fpath)
+                elif fpath.suffix.lower() == '.txt':
+                    extracts = self.extract_txt(fpath)
+                else:
+                    continue
 
-            # Save individual file
-            output_file = self.processed_dir / f"{pdf_file.stem}.json"
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(extracts, f, indent=2, ensure_ascii=False)
-
-        # Process Word docs
-        for docx_file in self.raw_dir.glob('*.docx'):
-            if docx_file.name.startswith('~$'):  # Skip temp files
-                continue
-            print(f"Extracting: {docx_file.name}")
-            extracts = self.extract_docx(docx_file)
-            all_extracts[docx_file.stem] = extracts
-
-            # Save individual file
-            output_file = self.processed_dir / f"{docx_file.stem}.json"
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(extracts, f, indent=2, ensure_ascii=False)
-
-        # Process text files
-        for txt_file in self.raw_dir.glob('*.txt'):
-            print(f"Extracting: {txt_file.name}")
-            extracts = self.extract_txt(txt_file)
-            all_extracts[txt_file.stem] = extracts
-
-            # Save individual file
-            output_file = self.processed_dir / f"{txt_file.stem}.json"
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(extracts, f, indent=2, ensure_ascii=False)
+                if extracts:
+                    all_extracts[fpath.stem] = extracts
+                    output_file = self.processed_dir / f"{fpath.stem}.json"
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        json.dump(extracts, f, indent=2, ensure_ascii=False)
+                else:
+                    print(f"  Warning: No text extracted from {fpath.name}")
+            except Exception as e:
+                print(f"  FAILED to extract {fpath.name}: {e}")
+                failed.append(fpath.name)
 
         # Save combined manifest
         manifest_file = self.processed_dir / "manifest.json"
         with open(manifest_file, 'w', encoding='utf-8') as f:
             json.dump({
                 'total_docs': len(all_extracts),
-                'documents': list(all_extracts.keys())
+                'documents': list(all_extracts.keys()),
+                'failed': failed
             }, f, indent=2)
 
         print(f"\nExtraction complete: {len(all_extracts)} documents processed")
+        if failed:
+            print(f"  Failed: {len(failed)} files: {', '.join(failed)}")
         return all_extracts
 
 

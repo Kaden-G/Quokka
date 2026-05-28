@@ -310,6 +310,7 @@ def api_pouch_build_status():
 def _run_pipeline_thread():
     """Run the full pipeline in a background thread."""
     global searcher, metrics_tracker, _build_status
+    import traceback
 
     processed_dir = base_dir / 'data' / 'processed'
 
@@ -321,13 +322,17 @@ def _run_pipeline_thread():
         _build_status['step'] = f'Extracted {len(results)} documents. Chunking...'
 
         # Step 2: Chunk
-        chunker = SOPChunker(str(processed_dir), chunk_size=800, overlap=100)
+        chunker = SOPChunker(str(processed_dir), chunk_size=800, overlap=200)
         chunks = chunker.process_all()
-        _build_status['step'] = f'{len(chunks)} chunks created. Building index...'
+        _build_status['step'] = f'{len(chunks)} chunks created. Building embeddings...'
 
-        # Step 3: Embed & Index
+        # Step 3: Embed & Index (with progress callback)
         indexer = EmbeddingIndexer(str(processed_dir), str(index_dir))
-        indexer.build_index()
+
+        def on_embed_progress(done, total):
+            _build_status['step'] = f'Embedding chunks: {done}/{total}...'
+
+        indexer.build_index(progress_callback=on_embed_progress)
 
         # Save source manifest
         current_files = {}
@@ -348,7 +353,10 @@ def _run_pipeline_thread():
         print('Pipeline complete — searcher re-initialized.')
 
     except Exception as e:
+        traceback.print_exc()
         _build_status['error'] = str(e)
+        _build_status['step'] = f'Failed: {e}'
+        _build_status['done'] = True
         _build_status['running'] = False
         print(f'Pipeline error: {e}')
 

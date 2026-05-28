@@ -1563,34 +1563,33 @@
                 const r = await fetch('/api/pouch/build/status');
                 const d = await r.json();
 
-                if (d.error) {
-                    prog.className = 'build-progress error';
-                    prog.textContent = 'Error: ' + d.error;
-                    btn.disabled = false;
-                    clearInterval(interval);
-                    return;
-                }
-
                 prog.className = 'build-progress';
                 prog.textContent = d.step || 'Working...';
 
                 if (d.done) {
-                    prog.className = 'build-progress done';
-                    prog.textContent = 'Index built — ready to search!';
-                    btn.disabled = false;
                     clearInterval(interval);
-                    loadStats();
-                    // Push saved settings to the newly initialized searcher
-                    const saved = getSettings();
-                    if (saved.provider) {
-                        fetch('/api/settings', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(saved)
-                        }).then(() => loadLlmStatus()).catch(() => {});
+                    btn.disabled = false;
+
+                    if (d.error) {
+                        prog.className = 'build-progress error';
+                        prog.textContent = 'Build failed: ' + d.error + ' — try removing some files and retry.';
                     } else {
-                        loadLlmStatus();
+                        prog.className = 'build-progress done';
+                        prog.textContent = 'Index built — ready to search!';
+                        loadStats();
+                        // Push saved settings to the newly initialized searcher
+                        const saved = getSettings();
+                        if (saved.provider) {
+                            fetch('/api/settings', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(saved)
+                            }).then(() => loadLlmStatus()).catch(() => {});
+                        } else {
+                            loadLlmStatus();
+                        }
                     }
+                    return;
                 }
 
                 if (!d.running && !d.done) {

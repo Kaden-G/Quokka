@@ -46,20 +46,35 @@ class EmbeddingIndexer:
         print(f"Loaded {len(chunks)} chunks")
         return chunks
 
-    def create_embeddings(self, chunks: List[Dict]) -> np.ndarray:
-        """Generate embeddings for all chunks."""
-        print("Generating embeddings...")
+    def create_embeddings(self, chunks: List[Dict], progress_callback=None) -> np.ndarray:
+        """Generate embeddings for all chunks in batches.
+        
+        Args:
+            chunks: List of chunk dicts with 'text' key.
+            progress_callback: Optional callable(done: int, total: int) for progress updates.
+        """
+        print(f"Generating embeddings for {len(chunks)} chunks...")
 
         texts = [chunk['text'] for chunk in chunks]
+        batch_size = 32
+        all_embeddings = []
 
-        # Encode in batches for efficiency
-        embeddings = self.model.encode(
-            texts,
-            show_progress_bar=True,
-            batch_size=32,
-            convert_to_numpy=True
-        )
+        for start in range(0, len(texts), batch_size):
+            batch = texts[start:start + batch_size]
+            batch_emb = self.model.encode(
+                batch,
+                show_progress_bar=False,
+                batch_size=batch_size,
+                convert_to_numpy=True
+            )
+            all_embeddings.append(batch_emb)
 
+            done = min(start + batch_size, len(texts))
+            print(f"  Embedded {done}/{len(texts)} chunks")
+            if progress_callback:
+                progress_callback(done, len(texts))
+
+        embeddings = np.concatenate(all_embeddings, axis=0)
         print(f"Embeddings shape: {embeddings.shape}")
         return embeddings
 
@@ -206,13 +221,17 @@ class EmbeddingIndexer:
             'current_files': current_files
         }
 
-    def build_index(self):
-        """Full pipeline: load chunks, embed, build index."""
+    def build_index(self, progress_callback=None):
+        """Full pipeline: load chunks, embed, build index.
+        
+        Args:
+            progress_callback: Optional callable(done: int, total: int) for embedding progress.
+        """
         # Load chunks
         chunks = self.load_chunks()
 
         # Create embeddings
-        embeddings = self.create_embeddings(chunks)
+        embeddings = self.create_embeddings(chunks, progress_callback=progress_callback)
 
         # Build FAISS index
         index = self.build_faiss_index(embeddings)
