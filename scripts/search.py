@@ -77,15 +77,15 @@ class SOPSearcher:
         tokenized_corpus = [chunk['text'].lower().split() for chunk in self.metadata]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
-        # Load embedding model
+        # Load embedding model (CPU only — GPU can crash dxgmms2.sys on Windows)
         model_name = self.config.get('model_name', 'BAAI/bge-base-en-v1.5')
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, device='cpu')
 
         # Load cross-encoder for re-ranking (optional but recommended)
         self.use_reranker = use_reranker
         if self.use_reranker:
             print("Loading cross-encoder for re-ranking...")
-            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
+            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2', device='cpu')
         else:
             self.reranker = None
 

@@ -26,8 +26,8 @@ class EmbeddingIndexer:
         self.index_dir.mkdir(parents=True, exist_ok=True)
         self.model_name = model_name
 
-        print(f"Loading embedding model: {model_name}")
-        self.model = SentenceTransformer(model_name)
+        print(f"Loading embedding model: {model_name} (CPU mode)")
+        self.model = SentenceTransformer(model_name, device='cpu')
         print(f"Model loaded. Embedding dimension: {self.model.get_sentence_embedding_dimension()}")
 
     def load_chunks(self) -> List[Dict]:
